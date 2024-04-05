@@ -33,6 +33,8 @@ public:
 
     static bool isKeyRelease(nn::hid::KeyboardKey key);
 
+    static bool isModifierActive(nn::hid::KeyboardModifier modifier);
+
     // mouse inputs
 
     static bool isMouseHold(nn::hid::MouseButton button);
@@ -41,11 +43,23 @@ public:
 
     static bool isMouseRelease(nn::hid::MouseButton button);
 
+    static bool isMouseConnected();
+
     // mouse coordinate getters
 
     static void getMouseCoords(float *x, float *y);
 
     static void getScrollDelta(float *x, float *y);
+
+    // touch input getters
+
+    static bool getTouchCoords(s32 *x, s32 *y);
+
+    static bool isHoldTouch();
+
+    static bool isPressTouch();
+
+    static bool isReleaseTouch();
 
     // specific button funcs
 
@@ -121,6 +135,33 @@ public:
 
     static bool isReleasePadDown() { return isButtonRelease(nn::hid::NpadButton::Down); }
 
+    static bool isHoldStickL() { return isButtonHold(nn::hid::NpadButton::StickL); }
+
+    static bool isPressStickL() { return isButtonPress(nn::hid::NpadButton::StickL); }
+
+    static bool isReleaseStickL() { return isButtonRelease(nn::hid::NpadButton::StickL); }
+
+    static bool isHoldStickR() { return isButtonHold(nn::hid::NpadButton::StickR); }
+
+    static bool isPressStickR() { return isButtonPress(nn::hid::NpadButton::StickR); }
+
+    static bool isReleaseStickR() { return isButtonRelease(nn::hid::NpadButton::StickR); }
+
+    // analog
+
+    static float getLeftStickX() { return ((float) curControllerState.mAnalogStickL.X) / 32768.f; }
+    static float getLeftStickY() { return ((float) curControllerState.mAnalogStickL.Y) / 32768.f; }
+    static float getLeftStickLeft() { float x = getLeftStickX(); return x < 0 ? -x : 0; }
+    static float getLeftStickRight() { float x = getLeftStickX(); return x > 0 ? x : 0; }
+    static float getLeftStickUp() { float y = getLeftStickY(); return y > 0 ? y : 0; }
+    static float getLeftStickDown() { float y = getLeftStickY(); return y < 0 ? -y : 0; }
+
+    static float getRightStickX() { return ((float) curControllerState.mAnalogStickR.X) / 32768.f; }
+    static float getRightStickY() { return ((float) curControllerState.mAnalogStickR.Y) / 32768.f; }
+    static float getRightStickLeft() { float x = getRightStickX(); return x < 0 ? -x : 0; }
+    static float getRightStickRight() { float x = getRightStickX(); return x > 0 ? x : 0; }
+    static float getRightStickUp() { float y = getRightStickY(); return y > 0 ? y : 0; }
+    static float getRightStickDown() { float y = getRightStickY(); return y < 0 ? -y : 0; }
 
 private:
     static bool tryGetContState(nn::hid::NpadBaseState *state, ulong port);
@@ -135,6 +176,9 @@ private:
 
     static nn::hid::MouseState curMouseState;
     static nn::hid::MouseState prevMouseState;
+
+    static nn::hid::TouchScreenState<1> curTouchState;
+    static nn::hid::TouchScreenState<1> prevTouchState;
 
     static ulong selectedPort;
 

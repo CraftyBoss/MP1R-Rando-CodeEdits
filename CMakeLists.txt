@@ -21,8 +21,13 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/module/subsdk9.json.template ${CMAKE_
 
 ## Project sources
 include_directories(${PROJECT_SOURCE_DIR}/src/lib)
-include_directories(${PROJECT_SOURCE_DIR}/src/nvn)
-include_directories(${PROJECT_SOURCE_DIR}/src/nn)
+
+include_directories(${PROJECT_SOURCE_DIR}/libs/game)
+include_directories(${PROJECT_SOURCE_DIR}/libs/NintendoSDK)
+include_directories(${PROJECT_SOURCE_DIR}/libs/NintendoSDK/nn)
+include_directories(${PROJECT_SOURCE_DIR}/libs/NintendoSDK/nvn)
+include_directories(${PROJECT_SOURCE_DIR}/libs/NintendoSDK/nvnTool)
+
 include_directories(${PROJECT_SOURCE_DIR}/src/program)
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
@@ -45,6 +50,9 @@ add_executable(subsdk9 ${SOURCES_ASM} ${SOURCES_C} ${SOURCES_H} ${SOURCES_CXX} $
 add_compile_definitions(EXL_LOAD_KIND=Module EXL_LOAD_KIND_ENUM=EXL_LOAD_KIND_MODULE)
 target_link_libraries(subsdk9 ${LOCAL_LIBRARIES})
 
+# generate header file for imgui shader binary
+target_embed_binaries(subsdk9 "${PROJECT_SOURCE_DIR}/romfs/ShaderData/imgui.bin")
+
 ## Prepare subsdk ld
 set(SUBSDK_LD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/module/subsdk9.ld)
 execute_process(COMMAND uname OUTPUT_VARIABLE uname)
@@ -61,11 +69,21 @@ set_target_properties(subsdk9 PROPERTIES LINK_FLAGS "-specs ${CMAKE_BINARY_DIR}/
 
 add_custom_target(subsdk9_meta DEPENDS create_npdm subsdk9_nso)
 if (FTP_IP)
-  ## Upload to target switch
-  add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND ncftpput -u crafty -p boss -P 5000 -m ${FTP_IP} /atmosphere/contents/${TITLE_ID}/exefs ${CMAKE_BINARY_DIR}/main.npdm ${CMAKE_BINARY_DIR}/subsdk9)
-endif()
-
-if(RYU_PATH)
-  add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND cp ${CMAKE_BINARY_DIR}/main.npdm ${RYU_PATH}/mods/contents/${TITLE_ID}/mods/exefs/main.npdm)
-  add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND cp ${CMAKE_BINARY_DIR}/subsdk9 ${RYU_PATH}/mods/contents/${TITLE_ID}/mods/exefs/subsdk9)
+    ## Upload to target switch
+    if (FTP_USERNAME AND FTP_PASSWORD) # login using a username and password
+        add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND ncftpput -u ${FTP_USERNAME} -p ${FTP_PASSWORD} -P 5000 ${FTP_IP} /atmosphere/contents/${TITLE_ID}/exefs ${CMAKE_BINARY_DIR}/main.npdm ${CMAKE_BINARY_DIR}/subsdk9)
+    else ()
+        add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND ncftpput -u crafty -p boss -P 5000 ${FTP_IP} /atmosphere/contents/${TITLE_ID}/exefs ${CMAKE_BINARY_DIR}/main.npdm ${CMAKE_BINARY_DIR}/subsdk9)
+    endif ()
 endif ()
+
+if (RYU_PATH)
+    add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND mkdir -p ${RYU_PATH}/mods/contents/${TITLE_ID}/mods/exefs/)
+    add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND cp ${CMAKE_BINARY_DIR}/main.npdm ${RYU_PATH}/mods/contents/${TITLE_ID}/mods/exefs/main.npdm)
+    add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND cp ${CMAKE_BINARY_DIR}/subsdk9 ${RYU_PATH}/mods/contents/${TITLE_ID}/mods/exefs/subsdk9)
+endif ()
+
+# Copy to deploy folder (for release builds)
+add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND mkdir -p ${PROJECT_SOURCE_DIR}/deploy/atmosphere/contents/${TITLE_ID}/exefs)
+add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND cp ${CMAKE_BINARY_DIR}/main.npdm ${PROJECT_SOURCE_DIR}/deploy/atmosphere/contents/${TITLE_ID}/exefs/main.npdm)
+add_custom_command(TARGET subsdk9_meta POST_BUILD COMMAND cp ${CMAKE_BINARY_DIR}/subsdk9 ${PROJECT_SOURCE_DIR}/deploy/atmosphere/contents/${TITLE_ID}/exefs/subsdk9)

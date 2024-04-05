@@ -1,8 +1,9 @@
 #include "logger/Logger.hpp"
-#include <cstdio>
 #include <hook/replace.hpp>
+#include <libgen.h>
 #include <program/ExceptionHandler.h>
 #include <result.hpp>
+#include <ro.h>
 
 char* getFileNameFromPath(char* path)
 {
@@ -127,9 +128,46 @@ void exception_handler(nn::os::UserExceptionInfo *info) {
     Logger::log("\n");
 }
 
-HOOK_DEFINE_REPLACE(ExceptionHandlerStub) {
-    static void Callback() {}
-};
+void exceptionHandlerNoInfo() {
+
+    Logger::log("Stack trace:\n");
+
+    nn::diag::ModuleInfo *moduleInfos;
+    u64 bufSize = nn::diag::GetRequiredBufferSizeForGetAllModuleInfo();
+    void *moduleBuffer = alloca(bufSize);
+    int moduleCount = nn::diag::GetAllModuleInfo(&moduleInfos, moduleBuffer, bufSize);
+
+    stack_frame *frame;
+
+    asm("mov %0, fp" : "=r"(frame));
+
+    stack_frame* prevFrame = nullptr;
+    int index = 0;
+    while (frame != nullptr && frame != prevFrame) {
+        MemoryInfo memInfo;
+        u32 pageInfo;
+        if (R_FAILED(svcQueryMemory(&memInfo, &pageInfo, (u64)frame)) || (memInfo.perm & Perm_R) == 0)
+            break;
+        prevFrame = frame;
+
+        char traceName[0x20] = {};
+        sprintf(traceName, "ReturnAddress[%d]", index++);
+
+        printTraceEntry(traceName, frame->lr, moduleInfos, moduleCount);
+        frame = frame->prevFp;
+    }
+
+    Logger::log("Module Info:\n");
+    Logger::log("Number of Modules: %d\n", moduleCount);
+    Logger::log("  %-*s   %-*s   path\n", 16, "base", 16, "size");
+
+    for (int i = 0; i < moduleCount; ++i) {
+        nn::diag::ModuleInfo &curInfo = moduleInfos[i];
+        Logger::log("  0x%P 0x%P %s\n", curInfo.mBaseAddr, curInfo.mSize, getFileNameFromPath(curInfo.mPath));
+    }
+}
+
+HOOK_DEFINE_REPLACE(ExceptionHandlerStub) {static void Callback() {}};
 
 void installExceptionStub() {
     ExceptionHandlerStub::InstallAtSymbol("_ZN2nn2os23SetUserExceptionHandlerEPFvPNS0_17UserExceptionInfoEEPvmS2_");

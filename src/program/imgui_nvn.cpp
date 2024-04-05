@@ -1,3 +1,4 @@
+#include <oe.h>
 #include "imgui_nvn.h"
 #include "imgui_backend/imgui_impl_nvn.hpp"
 #include "init.h"
@@ -48,13 +49,28 @@ void setSamplerPool(nvn::CommandBuffer* cmdBuf, const nvn::SamplerPool* pool) {
 }
 
 void setCrop(nvn::Window *window, int x, int y, int w, int h) {
-
-    Logger::log("Window Crop: x: %d y: %d w: %d h: %d\n", x, y, w, h);
-
     tempSetCropFunc(window, x, y, w, h);
 
-    if (hasInitImGui)
-        ImGui::GetIO().DisplaySize = ImVec2(w - x, h - y);
+    if (hasInitImGui) {
+
+        ImVec2 &dispSize = ImGui::GetIO().DisplaySize;
+        ImVec2 windowSize = ImVec2(w - x, h - y);
+
+        if (dispSize.x != windowSize.x && dispSize.y != windowSize.y) {
+            bool isDockedMode = nn::oe::GetOperationMode() == nn::oe::OperationMode_Docked;
+
+            Logger::log("Updating Projection and Scale to: X %f Y %f\n", windowSize.x, windowSize.y);
+            Logger::log("Previous Size: X %f Y %f\n", dispSize.x, dispSize.y);
+
+            dispSize = windowSize;
+            ImguiNvnBackend::updateProjection(windowSize);
+            ImguiNvnBackend::updateScale(isDockedMode);
+
+        }
+    }else {
+        ImVec2 windowSize = ImVec2(w - x, h - y);
+        Logger::log("Crop Set to: X %f Y %f\n", windowSize.x, windowSize.y);
+    }
 }
 
 void presentTexture(nvn::Queue *queue, nvn::Window *window, int texIndex) {
@@ -214,7 +230,6 @@ void nvnImGui::addDrawFunc(ProcDrawFunc func) {
 }
 
 void nvnImGui::procDraw() {
-
     ImguiNvnBackend::newFrame();
     ImGui::NewFrame();
 
@@ -279,7 +294,16 @@ bool nvnImGui::InitImGui() {
 
 
 #if IMGUI_USEEXAMPLE_DRAW
-        addDrawFunc([]() {ImGui::ShowDemoWindow();});
+        IMGUINVN_DRAWFUNC(
+            ImGui::ShowDemoWindow();
+            //    ImGui::ShowStyleSelector("Style Selector");
+            //        ImGui::ShowMetricsWindow();
+            //        ImGui::ShowDebugLogWindow();
+            //        ImGui::ShowStackToolWindow();
+            //        ImGui::ShowAboutWindow();
+            //        ImGui::ShowFontSelector("Font Selector");
+            //        ImGui::ShowUserGuide();
+        )
 #endif
 
         return true;

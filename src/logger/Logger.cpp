@@ -1,5 +1,5 @@
 #include "Logger.hpp"
-#include "socket.h"
+#include "socket.hpp"
 #include "nifm.h"
 #include "util.h"
 #include "lib.hpp"
@@ -9,7 +9,7 @@
 char socketPool[0x600000 + 0x20000] __attribute__((aligned(0x1000)));
 
 Logger &Logger::instance() {
-    static Logger instance;
+    static Logger instance = {};
     return instance;
 }
 
