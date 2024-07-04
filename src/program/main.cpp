@@ -4,21 +4,197 @@
 #include "logger/Logger.hpp"
 #include "patches.hpp"
 #include <CActors/MP1/CPlayerMP1.h>
-#include <CActors/MP1/CScriptPickupMP1.h>
+#include <CActors/MP1/CScriptMailboxMP1.h>
 #include <CGame/CGameStateManager.h>
-#include <Component/CGameObjectComponent.h>
 #include <Component/MP1/CPickupMP1GOC.h>
 #include <Math.hpp>
-#include <cmath>
 
-#include "helpers/InputHelper.h"
+#include <cmath>
+#include <rstl/key_value_vector.h>
+
+#include "helpers.h"
 #include "imgui_nvn.h"
 
 #include "ExceptionHandler.h"
 
 #include "CGame/CGameState.h"
+#include "CGame/CGameStateManager.h"
+#include "CState/CStateManager.h"
+
+#include "RoomWarper.h"
+#include "globals.h"
+
+#include "InventoryMenu.hpp"
 
 #define IMGUI_ENABLED true
+
+namespace NGuiMapFormat {
+    struct SIconInstance
+    {
+        CVector3f mRenderPos = {};
+        int mMatIdx = -1;
+        int mIconAlpha = 1.0f;
+    };
+
+    struct SDoorInstance {
+        char size[0x40];
+    };
+
+    struct SObjectRenderRange {
+        uint mIdxFirst;
+        uint mIdxSecond;
+    };
+
+    struct CMappableObjectData {
+        rstl::vector<SDoorInstance> mDoorInstanceData;
+        rstl::vector<SIconInstance> mIconInstanceData;
+        rstl::key_value_vector<int, rstl::reserved_vector<NGuiMapFormat::SObjectRenderRange, 3>> mObjectRangesTable;
+    };
+
+    struct CGuiMapResourceData {
+
+    };
+}
+
+struct CMappableObjectMP1
+{
+    CUniverseInfoMP1::SMappableObjectInfoMP1 mInfo;
+    float float48;
+    float float4C;
+    float float50;
+    char gap54[48];
+    int cmappableobjectmp184;
+    char gap88[56];
+    int mObjectType;
+    float floatC4;
+    float floatC8;
+    float floatCC;
+    float floatD0;
+    int mInstanceIdx;
+    CObjectId mAreaId;
+    void* qwordE8;
+    void* qwordF0;
+};
+
+struct CMapAreaMP1
+{
+    CObjectId mAreaId;
+    void* qword10;
+    void* qword18;
+    void* qword20;
+    int mAreaIdx;
+    int dword2C;
+    const CTransform4f ctransform4f30;
+    void* qword60;
+    int dword68;
+    void* qword70;
+    void* qword78;
+    rstl::vector<CMappableObjectMP1> mMappableObjList;
+
+    CMapAreaMP1(void);
+    //    CMapAreaMP1(CGuiMap::SAreaMapData const&);
+    ~CMapAreaMP1();
+
+    bool GetIsVisibleToAutoMapper(bool,bool) const;
+    void GetBoundingBox(void);
+    //    void TestCollision(CFixedLengthRay const&,bool,CVector3f &,CUnitVector3f &,float &);
+};
+
+struct CMapWorldMP1 {
+    char pad[0x58];
+    rstl::single_ptr<NGuiMapFormat::CMappableObjectData> mWorldMappableData;
+
+    CMapWorldMP1(class CGuiMap const*);
+    ~CMapWorldMP1();
+    void AssembleMappableObjectData(void);
+
+    bool HasMapArea(CObjectId const&) const;
+    CMapAreaMP1** GetMapArea(CObjectId const&) const; // this is actually a rstl::ncrc_ptr, but our impl hasn't been finished yet.
+    void GetVisibleAreas(CStateManager const&,class IWorldMP1 const&,CMapWorldInfoMP1 const&) const;
+    bool IsMapAreaValid(CStateManager const&,IWorldMP1 const&,CObjectId const&,bool) const;
+    void RecalculateWorldSphere(CStateManager const&,CMapWorldInfoMP1 const&,IWorldMP1 const&) const;
+    void ConstrainToWorldVolume(CVector3f const&,CVector3f const&,CVector3f const&) const;
+    void CopyMappableObjectData(rstl::single_ptr<NGuiMapFormat::CMappableObjectData> &) const;
+};
+
+class CGuiMap {
+public:
+    CGuiMap(CInputStream &);
+    ~CGuiMap();
+
+    void CurrentVersion(void);
+    void CopyRenderResourceData(rstl::single_ptr<NGuiMapFormat::CGuiMapResourceData,rstl::single_ptr_details::default_traits> &) const;
+};
+
+class IWorldMP1 {
+public:
+    virtual ~IWorldMP1() = default;
+    virtual CObjectId *IGetWorldAssetId() = 0;
+    virtual void IGetStringTableEntry() = 0;
+    virtual CMapWorldMP1 *IGetMapWorld() = 0;
+    virtual CMapWorldMP1 *IMapWorld() = 0;
+    virtual bool IHasMapWorld() = 0;
+    virtual void ICheckWorldComplete(const CStateManager *) = 0;
+    virtual CGuiMap* IGetGuiMapPtr() = 0;
+};
+
+struct CAutoMapControllerMP1 {
+    char pad[0x28];
+    int mWorldIdx;
+    IWorldMP1 *mFocusWorld;
+    IWorldMP1 *mCurrPlayerWorld;
+    bool mWorldChanged;
+    char size[0x270-0x40];
+
+    IWorldMP1* DummyWorld(int);
+};
+
+struct CAutoMapperMP1 {
+    char size[0x428];
+    CAutoMapControllerMP1 mMapController;
+};
+
+struct SGuiMapRenderData {
+    u8 mRenderDataBitfield; // 2nd bit = mIsReloadArea
+    char pad[0x30F];
+    rstl::single_ptr<NGuiMapFormat::CGuiMapResourceData> mResourceData;
+    rstl::single_ptr<NGuiMapFormat::CMappableObjectData> mMappableObjData;
+    void* field_320;
+    void* field_328;
+};
+
+struct CGuiMapContextSceneNodeProxy {
+    char inheritedData[0x68];
+    SGuiMapRenderData mRenderData;
+
+    SGuiMapRenderData* Data();
+};
+
+class CGraphicsDeviceContext;
+class CGraphicsVertexBufferToken;
+class CMaterialInstance;
+enum EPrimitive {};
+enum EMaterialTechnique {};
+class CMaterialExec {
+public:
+    static void DrawMesh(CGraphicsDeviceContext &,CGraphicsVertexBufferToken const&,CMaterialInstance const&,EPrimitive,uint,uint,EMaterialTechnique);
+};
+
+struct CMaterialInstanceData;
+struct CGuiMapRenderManager {
+    char gap0[0xB0];
+    CMaterialInstanceData* mIconMatList;
+    char gapB8[0x40];
+    CMaterialInstanceData* mHintIconMat;
+    char gapF8[0x560];
+    CVector3f mHintIconScalar;
+};
+
+struct CCreditsGOC {
+    char pad[0x204];
+    float mScrollSpeed;
+};
+constexpr float CREDITS_SPEED = 5.0f;
 
 rstl::auto_ptr<CGameState> gGameState;
 CGameStateManager *gGameStateManager = nullptr;
@@ -28,223 +204,105 @@ CTransform4f lastKnownTransform = CTransform4f::Identity();
 CVector3f lastKnownVelocity{};
 CAxisAngle lastKnownAngularVelocity{};
 
-void drawDebugWindow() {
-    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Game Debug Window");
-
-    if(ImGui::CollapsingHeader("General Game Toggles")) {
-        ImGui::Checkbox("Toggle Skippable Cutscene Override", &CGameState::mCinematicForceSkippableOverride);
-
-        if(!gGameState.null() && gStateManager) {
-
-            rstl::string *savePointName = gGameState->GetSavePointName();
-
-            ImGui::Text("Save Point Name: %s", savePointName->data());
-
-            CGameAreaManager* areaManager = gStateManager->mGameAreaManager;
-
-            if(areaManager && areaManager->mCurArea) {
-                ImGui::Text("Current Area Asset ID: %s\n", areaManager->mCurArea->mAreaAssetId.AsString().data());
-                ImGui::Text("Current Area ID: %d\n", areaManager->mCurArea->mAreaId);
-            }
-        }
+bool isMemoryRelayActive(CObjectId relayGuid, CObjectId worldId) {
+    if(relayGuid == *CObjectId::Invalid() || worldId == *CObjectId::Invalid()) {
+        Logger::log("Relay ID value: %s World Id value: %s\n", relayGuid.AsString().data(), worldId.AsString().data());
+        return false;
     }
 
-    ImGui::Text("Player Pos: %f %f %f", lastKnownTransform.x, lastKnownTransform.y, lastKnownTransform.z);
+    auto worldState = gpGameState->StateForWorld(worldId);
+    if(!worldState) {
+        Logger::log("World state was null!\n");
+        return false;
+    }
+
+    auto mailbox = *worldState->Mailbox();
+    if(!mailbox) {
+        Logger::log("Mailbox was null!\n");
+        return false;
+    }
+
+    auto& msgs = mailbox->mMemoryRelayMessages;
+
+    for (int i = 0; i < msgs.size(); ++i) {
+        if(msgs.at(i).mRelayGuid == relayGuid)
+            return true;
+    }
+    return false;
+}
+
+void drawDebugWindow() {
+    if(!InputHelper::isInputToggled())
+        return;
+
+    ImGui::SetNextWindowPos(ImVec2(390, 0), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+    ImGui::Begin("Debug Info");
+
+    if(ImGui::CollapsingHeader("General Game Info")) {
+        ImGui::Text("Current Level Guid: %s", gpGameState->mLevelGuid.AsString().data());
+        ImGui::Text("Current Area Guid: %s", gpGameState->CurrentWorldState()->GetCurrentArea().AsString().data());
+    }
+
+//    if(ImGui::CollapsingHeader("Current World Relay Messages")) {
+//        if(gpGameState) {
+//            auto worldState = gpGameState->CurrentWorldState();
+//
+//            if(worldState) {
+//                auto mailbox = *worldState->Mailbox();
+//                if(mailbox) {
+//                    auto& msgs = mailbox->mMemoryRelayMessages;
+//                    ImGui::Text("Message Count: %d", msgs.size());
+//                    ImGui::Text("Message Capacity: %d", msgs.capacity());
+//
+//                    for (int i = 0; i < msgs.size(); ++i) {
+//                        ImGui::Text("Entry[%d]: Guid %s", i, msgs.at(i).mRelayGuid.AsString().data());
+//                    }
+//                }else
+//                    ImGui::Text("Mailbox is null.");
+//            }else
+//                ImGui::Text("World state is null.");
+//        }else
+//            ImGui::Text("Game state is null.");
+//    }
+
+    if(ImGui::BeginMenu("Warp Menu")) {
+        RoomWarper::DrawWarpMenu();
+        ImGui::EndMenu();
+    }
+
+    if(ImGui::Button("Warp to Credits")) {
+        RoomWarper::WarpToRoom(gpGameState->mLevelGuid, CObjectId("CE44A797-C442-4128-8372-694626A83722"));
+    }
+
+    ImGui::Text("Left Stick X: %f", InputHelper::getLeftStickX());
+    ImGui::Text("Left Stick Y: %f", InputHelper::getLeftStickY());
+
+//    GUI::drawInventoryMenu();
 
     ImGui::End();
 }
 
-bool isNearValue(float in, float value, float range = 0.1f) {
-    return in >= (value - range) && in <= (value + range);
-}
-
-struct CEntityInfoMP1;
-struct CActorParametersMP1;
-struct CAnimResMPT;
-struct CStaticResMPT;
-struct CAnimatedUvDataMP1;
-
-struct CAnimDataMP1 {
-    static const char* skSkeletonRoot; // "Skeleton_Root"
-    static const char* skRelativeRoot; // "root.anchorBlend"
-    static const char* skLegacyRelativeRoot; // "character.anchorBlend"
-
-    enum ETransformMode {};
-};
-
-namespace NGame {
-    struct SObjectInfo;
-}
-
-struct CModelLightingDataMP1 {
-    static CModelLightingDataMP1 Default(void);
-    static CModelLightingDataMP1 FromParams(CActorParametersMP1 const&);
-
-    CQuaternion mQuat;
-    bool unkBool1;
-};
-
-struct CModelDataMP1 {
-    CModelDataMP1(IMP1EntityBaseGOC &,CStaticResMPT const&,CModelLightingDataMP1 const&);
-    CModelDataMP1(IMP1EntityBaseGOC &,CStaticResMPT const&,CModelLightingDataMP1 const&,CAnimatedUvDataMP1 const&);
-    CModelDataMP1(void);
-    CModelDataMP1(CStateManager const&,rstl::ncrc_ptr<CSceneProxy> const&,CAnimResMPT const&,CAnimDataMP1::ETransformMode,CModelLightingDataMP1 const&);
-    CModelDataMP1(CStateManager const&,IMP1EntityBaseGOC &,CAnimResMPT const&,CAnimDataMP1::ETransformMode,CModelLightingDataMP1 const&);
-    CModelDataMP1(CModelDataMP1 const&);
-    CModelDataMP1(CModelDataMP1&&);
-
-    CScale3f mModelScale;
-    int pad1;
-    bool byte10;
-    struct CAnimDataMP1 *mAnimData;
-    bool byte20;
-    float float24;
-    float float28;
-    float float2C;
-    float float30;
-    rstl::rc_ptr<class CModelSceneNodeProxyMP1> mModelNode;
-    rstl::rc_ptr<class CSceneNodeProxy> mSceneNodeProxy2;
-    rstl::rc_ptr<CSceneNodeProxy> mSceneNodeProxy3;
-    CValueVersionId<uint,ushort,ushort,16u,16u> mAreaUniqueId;
-    uint8_t mGroupId;
-    float float70;
-    float float74;
-    CObjectId mModelId;
-    CAABox mBoundBox;
-    bool mHasBoundBox;
-    NGame::SObjectInfo *mObjInfo;
-    CModelLightingDataMP1 mLightingData;
-};
-
-HOOK_DEFINE_TRAMPOLINE(CreatePickupHook) {
-    static void Callback(CScriptPickupMP1 *thiz, CEntityInfoMP1 const& entityInfo, CTransform4f const& transform, CModelDataMP1& modelData,
-                         CActorParametersMP1 const& actorParams, CAABox const& bBox, int int1, int int2, int int3, float float1, float float2, float float3,
-                         float float4, CObjectId objectId, CVector3f pos, bool bool1, bool bool2) {
-
-        Logger::log("Pickup Model ID: %llu %llu\n", modelData.mModelId.low,  modelData.mModelId.high);
-
-        Logger::log("Lighting Data Quat: %f %f %f %f\n", modelData.mLightingData.mQuat.x, modelData.mLightingData.mQuat.y, modelData.mLightingData.mQuat.z, modelData.mLightingData.mQuat.w);
-        modelData.mLightingData.unkBool1 = true;
-
-        Orig(thiz, entityInfo, transform, modelData, actorParams, bBox, int1, int2, int3, float1, float2, float3, float4, objectId, pos, bool1, bool2);
-
-        Logger::log("Created Pickup Script with Item Type: %d (%s)\n", thiz->mItem, getItemName(thiz->mItem));
-
-        // Pickup near spawn
-        // -327.727448 -30.442602 -298.809204
-        // custom pos
-        // -326.283325 -21.843369 -333.332367
-
-        Logger::log("Entity Position: %f %f %f\n", transform.x, transform.y, transform.z);
-
-        if(isNearValue(transform.x, -327.727448f) && isNearValue(transform.y, -30.442602f) && isNearValue(transform.z, -298.809204f)) {
-            auto& trans = thiz->GetTransform();
-
-            Logger::log("Moving Starting room pickup.\n");
-            trans.x = -326.283325f;
-            trans.y = -21.843369f;
-            trans.z = -333.332367f;
-
-            thiz->SetTransform(trans);
-        }
-    }
-};
-
-HOOK_DEFINE_TRAMPOLINE(LoadPickupHook) {
-    static CPickupMP1GOC* Callback(CInputStream *paramStream, SGOComponentInfo& info) {
-        // modify pickup type here
-        auto properties = (SLdrPickupMP1*)info.mComponentProperties.get();
-//
-//        if(properties->mItemType != CPlayerStateMP1::EItemType::kIT_Missiles) {
-//            Orig(paramStream, info);
-//            return;
-//        }
-
-        Logger::log("Loading Pickup GameObject with Item Type: %d (%s)\n", properties->mItemType, getItemName((CPlayerStateMP1::EItemType)properties->mItemType));
-//
-//        Logger::log("\tvec1: %f %f %f\n", properties->vec1.x, properties->vec1.y, properties->vec1.z);
-//        Logger::log("\tvec2: %f %f %f\n", properties->vec2.x, properties->vec2.y, properties->vec2.z);
-//        Logger::log("\tvec3: %f %f %f\n", properties->vec3.x, properties->vec3.y, properties->vec3.z);
-
-//        Logger::log("\tMap Info ObjID: %s\n", properties->mapInfo.mObjId.AsString().data());
-//        Logger::log("\tMap Info unkInt1: %d\n", properties->mapInfo.unkInt1);
-//        Logger::log("\tMap Info unkInt2: %d\n", properties->mapInfo.unkInt2);
-
-
-        properties->mAreaAssetId = *CObjectId::Invalid();
-
-        properties->animSet.mObjId = *CObjectId::FromString(rstl::string_l("38e0274f-bcc5-410f-9b80-961479454634"));
-        properties->animSet.mString2 = rstl::string_l("powerbomb2_ready");
-
-        Logger::log("\tItem Asset ID Low: %llu\n", properties->itemID.low);
-        Logger::log("\tItem Asset ID High: %llu\n", properties->itemID.high);
-
-        Logger::log("\tArea Asset ID: %s\n", properties->mAreaAssetId.AsString().data());
-
-        Logger::log("\tAnim Set Asset ID: %s\n", properties->animSet.mObjId.AsString().data());
-        Logger::log("\tAnim Set String1: %s\n", properties->animSet.mString1.data());
-        Logger::log("\tAnim Set String2: %s\n", properties->animSet.mString2.data());
-
-//        Logger::log("\tactorInfo.objId1: %s\n", properties->actorInfo.objId1.AsString().data());
-//        Logger::log("\tactorInfo.objId2: %s\n", properties->actorInfo.objId2.AsString().data());
-//        Logger::log("\tactorInfo.objId3: %s\n", properties->actorInfo.objId3.AsString().data());
-//        Logger::log("\tactorInfo.objId4: %s\n", properties->actorInfo.objId4.AsString().data());
-//        Logger::log("\tactorInfo.objId5: %s\n", properties->actorInfo.objId5.AsString().data());
-
-//        Logger::log("\tunkInt2: %d\n",properties->unkInt2);
-//        Logger::log("\tunkInt3: %d\n",properties->unkInt3);
-//        Logger::log("\tunkFloat1: %f\n", properties->unkFloat1);
-//        Logger::log("\tunkFloat2: %f\n", properties->unkFloat2);
-//        Logger::log("\tunkFloat3: %f\n", properties->unkFloat3);
-//        Logger::log("\tunkBool9: %s (%d)\n",BTOC(properties->unkBool9), properties->unkBool9);
-//        Logger::log("\tunkBool10: %s (%d)\n",BTOC(properties->unkBool10), properties->unkBool10);
-//        Logger::log("\tunkBool11: %s (%d)\n",BTOC(properties->unkBool11), properties->unkBool11);
-//        Logger::log("\tunkBool12: %s (%d)\n",BTOC(properties->unkBool12), properties->unkBool12);
-//        Logger::log("\tunkBool13: %s (%d)\n",BTOC(properties->unkBool13), properties->unkBool13);
-//        Logger::log("\tunkBool14: %s (%d)\n",BTOC(properties->unkBool14), properties->unkBool14);
-
-        properties->mItemType = CPlayerStateMP1::EItemType::kIT_EnergyTanks;
-
-        auto* gObj = Orig(paramStream, info);
-
-        return gObj;
-    }
-};
-
-HOOK_DEFINE_INLINE(CreateComponentHook) {
-    static void Callback(exl::hook::InlineCtx* ctx) {
-        auto* thiz = (CGameObjectComponent*)ctx->X[0];
-        auto& stateManager = (CStateManager&)ctx->X[1];
-        auto& createInfo = (CGameObjectComponent::SCreateInfo&)ctx->X[2];
-
-        Logger::log("Creating Component: %04x (%s)\n", createInfo.verId1.value, getComponentName((EGOComponentType)createInfo.verId1.value));
-        thiz->Create(stateManager, createInfo);
-    }
-};
-
 HOOK_DEFINE_TRAMPOLINE(GetGameStateHook) {
     static void Callback(CGameStateManager *thisPtr, rstl::auto_ptr<CGameState> &newState) {
-        //        Logger::log("Setting New Game State Ptr.\n");
         gGameState = newState;
         gGameStateManager = thisPtr;
-
         Orig(thisPtr, newState);
     }
 };
 
 HOOK_DEFINE_TRAMPOLINE(GetStateManagerHook) {
     static void Callback(CStateManager *thisPtr) {
-//        Logger::log("Setting State Manager ptr.\n");
         gStateManager = thisPtr;
+        RoomWarper::SetManager(gStateManager);
         Orig(thisPtr);
     }
 };
 
+// noclip code from mp1r-practice-mod by Pwootage
 HOOK_DEFINE_TRAMPOLINE(CPlayerMP1_ProcessInput) {
     static void Callback(CPlayerMP1 *thiz, const CFinalInput &input, CStateManager &stateManager) {
-        auto *gameState = stateManager.GameState();
-
         if(InputHelper::isInputToggled()) {
             if (InputHelper::isHoldZR()) {
                 float multiplier = 0.3f;
@@ -281,6 +339,264 @@ HOOK_DEFINE_TRAMPOLINE(CPlayerMP1_ProcessInput) {
     }
 };
 
+// original implementation by UltiNaruto, modified to work in exlaunch
+HOOK_DEFINE_INLINE(CheckForVariaHook) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        CPlayerStateMP1* pState = (CPlayerStateMP1*)ctx->X[0];
+        ctx->W[8] = pState->GetItemCapacity(CPlayerStateMP1::EItemType::VariaSuit);
+    }
+};
+
+// CScriptLayer::ParseGeneratedData(ushort,CInputStream &,ulong,rstl::key_value_vector<CGuid,CScriptLayer::SDataInfo,rstl::less<CGuid>,rstl::shared_owned_memory_allocator<rstl::rmemory_allocator>> &)
+HOOK_DEFINE_TRAMPOLINE(GetGeneratedObjCount) {
+    static void Callback(ushort count, void* inputStream, ulong unk, void* kvpVec, void* allocator) {
+        Logger::log("Generated Obj Count: %d\n", count);
+
+        Orig(count, inputStream, unk, kvpVec, allocator);
+    }
+};
+
+// NScriptLoader::ComputeSizeForComponentProperties(rstl::memory_description,CInputStream &,ulong)
+HOOK_DEFINE_TRAMPOLINE(GetScriptLoaderCompCount) {
+    static void Callback(void* thiz, void* memDesc, CInputStream& inputStream, ulong count) {
+        Logger::log("SDEN Count: %d\n", count);
+
+        Orig(thiz, memDesc, inputStream, count);
+    }
+};
+
+HOOK_DEFINE_TRAMPOLINE(OpenFileHook) {
+    static nn::Result Callback(nn::fs::FileHandle* handleOut, char const* path, int mode) {
+        Logger::log("Opening File at Path: %s\n", path);
+        return Orig(handleOut, path, mode);
+    }
+};
+
+// series of hooks that will allow a custom SIconInstance to use the Hint material
+// these 3 are all located within CGuiMapRenderManager::RenderIcons
+HOOK_DEFINE_INLINE(SwapMaterial1Hook) { // Replaces X1 for the second CMaterialInstance::Append call
+    EXPORT_SYM static void Callback(exl::hook::InlineCtx* ctx) {
+        auto renderManagerPtr = (CGuiMapRenderManager*)ctx->X[21];
+        auto mHintIconMat = renderManagerPtr->mHintIconMat;
+        auto* icoData = (NGuiMapFormat::SIconInstance*)ctx->X[22];
+
+        if(icoData->mMatIdx > 8) {
+            if(mHintIconMat) {
+                ctx->X[1] = (u64)mHintIconMat;
+            }else {
+                EXL_ABORT(0, "Hint Icon Material was null!");
+            }
+        }
+    }
+};
+
+HOOK_DEFINE_INLINE(SwapMaterial2Hook) { // Replaces X0 for the first CMaterialInstanceData::BindVec4Data call
+    EXPORT_SYM static void Callback(exl::hook::InlineCtx * ctx) {
+        auto renderManagerPtr = (CGuiMapRenderManager*)ctx->X[21];
+        auto mHintIconMat = renderManagerPtr->mHintIconMat;
+        auto* icoData = (NGuiMapFormat::SIconInstance*)ctx->X[22];
+
+        if(icoData->mMatIdx > 8) {
+            if(mHintIconMat) {
+                ctx->X[0] = (u64)mHintIconMat;
+            }else {
+                EXL_ABORT(0, "Hint Icon Material was null!");
+            }
+        }
+    }
+};
+
+HOOK_DEFINE_INLINE(SwapMaterial3Hook) { // Replaces X0 and X2 for the second CMaterialInstanceData::BindVec4Data call
+    EXPORT_SYM static void Callback(exl::hook::InlineCtx* ctx) {
+        auto renderManagerPtr = (CGuiMapRenderManager*)ctx->X[21];
+        auto mHintIconMat = renderManagerPtr->mHintIconMat;
+        auto* icoData = (NGuiMapFormat::SIconInstance*)ctx->X[22];
+
+        if(icoData->mMatIdx > 8) {
+            if(mHintIconMat) {
+                ctx->X[0] = (u64)mHintIconMat;
+                ctx->X[2] = (u64)&renderManagerPtr->mHintIconScalar;
+            }else {
+                EXL_ABORT(0, "Hint Icon Material was null!");
+            }
+        }
+    }
+};
+
+HOOK_DEFINE_INLINE(DisableIconDrawHook) {
+    EXPORT_SYM static void Callback(exl::hook::InlineCtx* ctx) {
+        CGraphicsDeviceContext* arg0 = (CGraphicsDeviceContext*)ctx->X[0];
+        CGraphicsVertexBufferToken* arg1 = (CGraphicsVertexBufferToken*)ctx->X[1];
+        CMaterialInstance* arg2 = (CMaterialInstance*)ctx->X[2];
+        NGuiMapFormat::SIconInstance* icoData = (NGuiMapFormat::SIconInstance*)ctx->X[22];
+
+//        Logger::log("Icon Material Idx: %d", icoData->mMatIdx);
+        if(icoData->mMatIdx <= 9) {
+//            Logger::log(" Drawing.\n");
+            CMaterialExec::DrawMesh(*arg0, *arg1, *arg2, static_cast<EPrimitive>(ctx->W[3]), ctx->W[4], ctx->W[5], static_cast<EMaterialTechnique>(ctx->W[6]));
+        }
+//        else {
+//            Logger::log(" Not Drawing.\n");
+//        }
+    }
+};
+
+// Fix mIconIdx from being out of bounds for the CToken used for the donor mat
+HOOK_DEFINE_INLINE(FixIconIdxHook) {
+    EXPORT_SYM static void Callback(exl::hook::InlineCtx* ctx) {
+        int mIconIdx = ctx->X[8];
+
+        if(mIconIdx > 8) {
+            ctx->X[8] = 1;
+        }
+    }
+};
+
+EXPORT_SYM void updateCtxRenderData(CGuiMap* renderMap, const CMapWorldMP1& world, CGuiMapContextSceneNodeProxy& ctxProxy) {
+    if(!renderMap) {
+        Logger::log("CGuiMap ptr was null! unable to set resource data.");
+        return;
+    }
+    auto* renderData = ctxProxy.Data();
+
+    Logger::log("Updating Context Data.\n");
+    world.CopyMappableObjectData(renderData->mMappableObjData);
+    renderMap->CopyRenderResourceData(renderData->mResourceData);
+    renderData->mRenderDataBitfield |= 2;
+}
+
+// CAutoMapControllerMP1::UpdateAreaRenderState(CObjectId const&,CMapWorldMP1 const&,CMapWorldInfoMP1 const&,CGuiMapContextSceneNodeProxy &)	.text
+// CGuiMapContextSceneNode::CGuiMapContextSceneNode(CScene &,CValueVersionId<uint,ushort,ushort,16u,16u>,CGuiMapContextSceneNodeCreateData const&,rstl::ncrc_ptr<CGuiMapContextSceneNodeData> const&)	.text
+HOOK_DEFINE_TRAMPOLINE(UpdatePickupDotDataHook) {
+    EXPORT_SYM static void Callback(CAutoMapControllerMP1 *thiz, const CObjectId& areaId, const CMapWorldMP1& world, const CMapWorldInfoMP1& worldInfo, CGuiMapContextSceneNodeProxy& ctxProxy) {
+        if(thiz == nullptr || thiz->mFocusWorld == nullptr) {
+            Orig(thiz, areaId, world, worldInfo, ctxProxy);
+            return;
+        }
+
+        CObjectId worldId = *(thiz->mFocusWorld->IGetWorldAssetId());
+        CMapAreaMP1* mapArea = *world.GetMapArea(areaId);
+
+        bool isNeedUpdateCtx = false;
+        for (int i = 0; i < mapArea->mMappableObjList.size(); ++i) {
+            auto& mappableObj = mapArea->mMappableObjList.at(i);
+
+            if(mappableObj.mInfo.mObjectType != EMappableObjectType::PickupDot)
+                continue;
+
+            // get render data for obj
+            auto& mappableObjData = world.mWorldMappableData;
+
+            if(mappableObjData.null()) {
+                Logger::log("Mappable Object Data is null!\n");
+                continue;
+            }
+
+            auto& icoInstData = mappableObjData->mIconInstanceData.at(mappableObj.mInstanceIdx);
+
+            bool isHideIcon = isMemoryRelayActive(CObjectId(mappableObj.mInfo.mId), worldId);
+            int targetIdx = isHideIcon ? 11 : 9;
+
+            if(icoInstData.mMatIdx == targetIdx)
+                continue;
+
+            icoInstData.mMatIdx = targetIdx;
+            Logger::log("%s Icon at Idx: %d\n", isHideIcon ? "Hiding" : "Displaying", mappableObj.mInstanceIdx);
+            isNeedUpdateCtx = true;
+        }
+
+        if(isNeedUpdateCtx) {
+            IWorldMP1* mapRenderWorld;
+            if(worldId == gpGameState->mLevelGuid)
+                mapRenderWorld = thiz->mCurrPlayerWorld;
+            else
+                mapRenderWorld = thiz->DummyWorld(thiz->mWorldIdx);
+
+            CGuiMap* renderMap = mapRenderWorld ? mapRenderWorld->IGetGuiMapPtr() : nullptr;
+
+            updateCtxRenderData(renderMap, world, ctxProxy);
+        }
+
+        Orig(thiz, areaId, world, worldInfo, ctxProxy);
+    }
+};
+
+HOOK_DEFINE_INLINE(VerifyRenderDataUpdateHook) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        Logger::log("Re-initializing NGuiMapFormat::CGuiMapRenderData in CGuiMapRenderManager::Update.\n");
+    }
+};
+
+HOOK_DEFINE_INLINE(CheckWillUpdateHook) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        u8 isReloadFlag = ctx->W[8];
+
+        Logger::log("Is Reload flag: %d\n", isReloadFlag);
+
+        if(isReloadFlag & 2) {
+            bool isHaveObjData = ((void*)ctx->X[22]) != nullptr;
+            bool isHaveResourceData = ((void*)ctx->X[1]) != nullptr;
+            Logger::log("Is Have Mappable Object Data: %s\n", BTOC(isHaveObjData));
+            Logger::log("Is Have Resource Data: %s\n", BTOC(isHaveResourceData));
+        }
+    }
+};
+
+// Fixes the 3 calls to CAutoMapControllerMP1::UpdateAreaRenderState to have a reference to this, instead of being optimized out
+HOOK_DEFINE_INLINE(FixMapControllerRegister1Hook) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        ctx->X[0] = ctx->X[20];
+    }
+};
+
+HOOK_DEFINE_INLINE(FixMapControllerRegister2Hook) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        ctx->X[0] = ctx->X[20];
+    }
+};
+
+HOOK_DEFINE_INLINE(FixMapControllerRegister3Hook) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        ctx->X[0] = ctx->X[20];
+    }
+};
+
+HOOK_DEFINE_INLINE(OverrideCreditsSpeedHook) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        auto thiz = (CCreditsGOC*)ctx->X[19];
+
+        float yInput = InputHelper::getLeftStickY();
+
+        thiz->mScrollSpeed = fabs((double)yInput) > 0.001f ? (-yInput * CREDITS_SPEED) : 1.0f;
+    }
+};
+
+
+
+HOOK_DEFINE_INLINE(TempHook1) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        Logger::log("Game State Ctor 1 called.\n");
+        auto initState = (CGameState::SInitialState*)ctx->X[2];
+
+        Logger::log("Initial State ID: %s\n", initState->mAreaId.AsString().data());
+        Logger::log("Initial State Save Slot: %d\n", initState->mSaveSlot);
+    }
+};
+
+HOOK_DEFINE_INLINE(TempHook2) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        Logger::log("Game State Ctor 2 called.\n");
+
+        auto thiz = (CGameState*)ctx->X[19];
+
+        Logger::log("Initial State ID: %s\n", thiz->mInitialArea.mAreaId.AsString().data());
+        Logger::log("Initial State Save Slot: %d\n", thiz->mInitialArea.mSaveSlot);
+
+        Logger::log("Desired State ID: %s\n", thiz->mDesiredArea.mAreaId.AsString().data());
+        Logger::log("Desired State Save Slot: %d\n", thiz->mDesiredArea.mSaveSlot);
+    }
+};
+
 extern "C" void exl_main(void *x0, void *x1) {
     /* Setup hooking enviroment. */
     exl::hook::Initialize();
@@ -291,25 +607,60 @@ extern "C" void exl_main(void *x0, void *x1) {
 
     runCodePatches();
 
+    TempHook1::InstallAtOffset(0x408DBC);
+    TempHook2::InstallAtOffset(0x409300);
+
+//    OpenFileHook::InstallAtSymbol("_ZN2nn2fs8OpenFileEPNS0_10FileHandleEPKci");
+
     GetGameStateHook::InstallAtSymbol("_ZN17CGameStateManager18AssignNewGameStateERN4rstl8auto_ptrI10CGameStateEE");
     GetStateManagerHook::InstallAtSymbol("_ZN13CStateManager15InitializeStateEv");
 
-    // rando patches
-    CreatePickupHook::InstallAtSymbol("_ZN16CScriptPickupMP1C1ERK14CEntityInfoMP1RK12CTransform4fRK13CModelDataMP1RK19CActorParametersMP1RK6CAABoxiiiffff9CObjectId9CVector3fbb");
-//    LoadPickupHook::InstallAtSymbol("_Z16LoadPickupMP1GOCR12CInputStreamR16SGOComponentInfo");
-    //    SetItemTypeInlineHook::InstallAtOffset(0xEA0034);
-    CreateComponentHook::InstallAtOffset(0x46A394);
-
     // practice mod patches
     CPlayerMP1_ProcessInput::InstallAtSymbol("_ZN10CPlayerMP112ProcessInputERK11CFinalInputR13CStateManager");
+
+    // rando patches
+    CheckForVariaHook::InstallAtOffset(0xD95F54);
+
+    SwapMaterial1Hook::InstallAtOffset(0xB55D30);
+    SwapMaterial2Hook::InstallAtOffset(0xB55D5C);
+    SwapMaterial3Hook::InstallAtOffset(0xB55D84);
+    FixIconIdxHook::InstallAtOffset(0xB55CA8);
+
+    UpdatePickupDotDataHook::InstallAtSymbol("_ZNK21CAutoMapControllerMP121UpdateAreaRenderStateERK9CObjectIdRK12CMapWorldMP1RK16CMapWorldInfoMP1R28CGuiMapContextSceneNodeProxy");
+    DisableIconDrawHook::InstallAtOffset(0xB55DA4);
+    FixMapControllerRegister1Hook::InstallAtOffset(0xE5FCCC);
+    FixMapControllerRegister2Hook::InstallAtOffset(0xE5FD58);
+    FixMapControllerRegister3Hook::InstallAtOffset(0xE5FDE0);
+
+    OverrideCreditsSpeedHook::InstallAtOffset(0x577CC8);
+
+
+    CGameState::mCinematicForceSkippableOverride = true;
+
+//    VerifyRenderDataUpdateHook::InstallAtOffset(0xB50434);
+//    CheckWillUpdateHook::InstallAtOffset(0xB50420);
+
+//    GetGeneratedObjCount::InstallAtSymbol("_ZN12CScriptLayer18ParseGeneratedDataEtR12CInputStreammRN4rstl16key_value_vectorI5CGuidNS_9SDataInfoENS2_4lessIS4_EENS2_29shared_owned_memory_allocatorINS2_17rmemory_allocatorEEEEE");
+//    GetScriptLoaderCompCount::InstallAtSymbol("_ZN13NScriptLoader33ComputeSizeForComponentPropertiesEN4rstl18memory_descriptionER12CInputStreamm");
 
     // ImGui Hooks
 #if IMGUI_ENABLED
     nvnImGui::InstallHooks();
 
     nvnImGui::addDrawFunc(drawDebugWindow);
-#endif
 
+//    nvnImGui::addDrawFunc([]() {
+//        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
+//        ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+//        ImGui::Begin("PlayerPos", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+//                                                       ImGuiWindowFlags_NoSavedSettings |
+//                                                       ImGuiWindowFlags_NoFocusOnAppearing);
+//        ImGui::Text("Player Pos: %f %f %f", lastKnownTransform.x, lastKnownTransform.y, lastKnownTransform.z);
+//        ImGui::End();
+//    });
+
+
+#endif
 }
 
 extern "C" NORETURN void exl_exception_entry() {

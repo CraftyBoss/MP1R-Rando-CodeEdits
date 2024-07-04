@@ -128,7 +128,7 @@ void exception_handler(nn::os::UserExceptionInfo *info) {
     Logger::log("\n");
 }
 
-void exceptionHandlerNoInfo() {
+void exceptionHandlerNoInfo(bool isTraceOnly) {
 
     Logger::log("Stack trace:\n");
 
@@ -156,6 +156,9 @@ void exceptionHandlerNoInfo() {
         printTraceEntry(traceName, frame->lr, moduleInfos, moduleCount);
         frame = frame->prevFp;
     }
+
+    if(isTraceOnly)
+        return;
 
     Logger::log("Module Info:\n");
     Logger::log("Number of Modules: %d\n", moduleCount);

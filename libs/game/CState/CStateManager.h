@@ -4,7 +4,9 @@
 
 #include "CGame/CGameStateManager.h"
 #include "CObject/CObjectId.h"
+#include "CStateManagerGameLogicMP1.h"
 #include <CGame/CGameAreaManager.h>
+#include <CGame/CGameInstanceState.h>
 #include <rstl/enum_bit_field.h>
 #include <rstl/rc_ptr.hpp>
 
@@ -43,11 +45,11 @@ public:
 //    void GameLogicOnAreaLoaded(CValueVersionId<uint,ushort,ushort,16u,16u>);
     void EmitUIProxyEvent(NUIRelayGOC::EUIProxyEvent);
     void EmitUIProxyEvent(NUIRelayGOC::SUIProxyEventData const&);
-    void GameInstanceState(void);
+    CGameInstanceState& GameInstanceState(void);
     void InitializeState(void);
     void SetInventoryCountCallback(CDataEnumValue const&,float,float);
     void SetInventoryCapacityCallback(CDataEnumValue const&,float,float);
-    CGameState* GameState(void);
+    CGameState& GameState(void);
     void ShutdownState(void);
     void ProcessInput(CFinalInput const&);
     void ConsumePlayerInput(void);
@@ -73,8 +75,8 @@ public:
     void RemoveFromSortedList(CGameObjectComponent &);
     void UpdateRenderState(void);
     void PushRenderState(rstl::ncrc_ptr<CSceneProxy> &,CStateManager::EResetElapsedTime);
-    void IsPaused(void);
-    void GetGameInstanceState(void);
+    bool IsPaused(void) const;
+    CGameInstanceState* GetGameInstanceState(void);
     void IsSkippingCinematic(void);
     void StartAutoSave(void);
     void UpdateListenerData(CTransform4f const&,CVector3f const&);
@@ -95,10 +97,10 @@ public:
     int cstatemanagerobject6;
     char gapA[639014];
     char gap9C030[4473104];
-    CGameAreaManager *mGameAreaManager;
-    void* unkPtr1; // gets set to zero
-    void* unkPtr2; // rstl::ncrc_ptr<IStateManagerGameLogic>->0x0
-    void* unkPtr3; // rstl::ncrc_ptr<IStateManagerGameLogic>->0x8
+    CGameAreaManager * mGameAreaManager;
+    void *unkPtr1;
+    CStateManagerGameLogicMP1 *mStateManagerGameLogic;
+    void *unkPtr3;
     char gap4E0148[1380];
     void* qword4E06C4;
     void* qword4E06CC;

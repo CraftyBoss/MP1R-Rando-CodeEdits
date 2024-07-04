@@ -1,15 +1,21 @@
 #pragma once
 
+#include "EGOComponentType.h"
+#include "NScript/NScriptMsg.h"
+#include "SGOComponentInfo.h"
+#include "Types/CValueVersionId.h"
+#include "rstl/rc_ptr.hpp"
 #include "types.h"
 #include <Math.hpp>
-#include "NScript/NScriptMsg.h"
-#include "EGOComponentType.h"
-#include "SGOComponentInfo.h"
-#include "rstl/rc_ptr.hpp"
-#include "Types/CValueVersionId.h"
 
 namespace NGeneration {
-    class SGenerationInfo;
+    struct SGenerationInfo {
+        CObjectId mAreaAssetId;
+        CGameObjectId mObjId;
+        bool unkBool1;
+        bool unkBool2;
+        int unkInt1;
+    };
     class SGenerateOptions;
 }
 
@@ -47,10 +53,7 @@ public:
 
         CGameObjectId verId1;
         CGameObjectId verId2;
-        void* genInfoPtr1;
-        void* genInfoPtr2;
-        void* genInfoPtr3;
-        int genInfoInt;
+        NGeneration::SGenerationInfo mGenerationInfo;
         CGameArea *mGameArea;
         bool mIsGeneratedObject;
         bool mIsLayerActive;

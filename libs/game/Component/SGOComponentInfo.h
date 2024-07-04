@@ -4,6 +4,7 @@
 #include <Script/SLdrCommon.h>
 #include <rstl/auto_ptr.h>
 #include <rstl/rc_ptr.hpp>
+#include <rstl/vector.h>
 #include "Types/CValueVersionId.h"
 
 class SScriptStringPoolCache;
@@ -14,15 +15,6 @@ class SGOComponentInstanceData;
 #pragma pack(push, 1)
 class SGOComponentProperties {
 public:
-    SLdrVector_MP1Typedef vec1;
-    SLdrVector_MP1Typedef vec2;
-    CObjectId itemID;
-    SLdrAnimSet_MP1Typedef animSet;
-    CObjectId mAreaAssetId;
-    SLdrVector_MP1Typedef vec3;
-    SLdrMapInfo_MP1Typedef mapInfo;
-    SLdrActorInformation_MP1Typedef actorInfo;
-
     virtual ~SGOComponentProperties();
     virtual void Load(CInputStream *a2, class CScriptLoadContext *a3);
 };

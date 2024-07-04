@@ -1,4 +1,5 @@
 #include "InputHelper.h"
+#include <logger/Logger.hpp>
 
 static const char *styleNames[] = {
     "Pro Controller",
@@ -77,7 +78,7 @@ void InputHelper::updatePadState() {
     prevTouchState = curTouchState;
     nn::hid::GetTouchScreenState(&curTouchState);
 
-    if (isHoldZL() && isPressZR()) {
+    if (isHoldStickL() && isPressStickR()) {
         toggleInput = !toggleInput;
     }
 }
@@ -88,17 +89,24 @@ bool InputHelper::tryGetContState(nn::hid::NpadBaseState *state, ulong port) {
     isReadInput = true;
     bool result = true;
 
+//    Logger::log("Style Set: ");
     if (styleSet.Test((int) nn::hid::NpadStyleTag::NpadStyleFullKey)) {
+//        Logger::log("Full Key\n");
         nn::hid::GetNpadState((nn::hid::NpadFullKeyState *) state, port);
     } else if (styleSet.Test((int) nn::hid::NpadStyleTag::NpadStyleHandheld)) {
+//        Logger::log("Handheld\n");
         nn::hid::GetNpadState((nn::hid::NpadHandheldState *) state, port);
     } else if (styleSet.Test((int) nn::hid::NpadStyleTag::NpadStyleJoyDual)) {
+//        Logger::log("Joy Dual\n");
         nn::hid::GetNpadState((nn::hid::NpadJoyDualState *) state, port);
     } else if (styleSet.Test((int) nn::hid::NpadStyleTag::NpadStyleJoyLeft)) {
+//        Logger::log("Joy Left\n");
         nn::hid::GetNpadState((nn::hid::NpadJoyLeftState *) state, port);
     } else if (styleSet.Test((int) nn::hid::NpadStyleTag::NpadStyleJoyRight)) {
+//        Logger::log("Joy Right\n");
         nn::hid::GetNpadState((nn::hid::NpadJoyRightState *) state, port);
     } else {
+//        Logger::log("Unknown: %02X\n", styleSet._storage);
         result = false;
     }
 

@@ -1,59 +1,59 @@
 #pragma once
 
-class CInputStream;
 class COutputStream;
+class CStateManager;
 
 #include "../types.h"
-#include "CState/CStateManager.h"
+#include <Stream/CInputStream.h>
+#include <CObject/CObjectId.h>
 
 class CPlayerStateMP1 {
 public:
     // enums copied from prime decomp
-    enum EItemType {
-        kIT_Invalid = -1,
-        kIT_PowerBeam = 0,
-        kIT_IceBeam = 1,
-        kIT_WaveBeam = 2,
-        kIT_PlasmaBeam = 3,
-        kIT_Missiles = 4,
-        kIT_ScanVisor = 5,
-        kIT_MorphBallBombs = 6,
-        kIT_PowerBombs = 7,
-        kIT_Flamethrower = 8,
-        kIT_ThermalVisor = 9,
-        kIT_ChargeBeam = 10,
-        kIT_SuperMissile = 11,
-        kIT_GrappleBeam = 12,
-        kIT_XRayVisor = 13,
-        kIT_IceSpreader = 14,
-        kIT_SpaceJumpBoots = 15,
-        kIT_MorphBall = 16,
-        kIT_CombatVisor = 17,
-        kIT_BoostBall = 18,
-        kIT_SpiderBall = 19,
-        kIT_PowerSuit = 20,
-        kIT_GravitySuit = 21,
-        kIT_VariaSuit = 22,
-        kIT_PhazonSuit = 23,
-        kIT_EnergyTanks = 24,
-        kIT_UnknownItem1 = 25,
-        kIT_HealthRefill = 26,
-        kIT_UnknownItem2 = 27,
-        kIT_Wavebuster = 28,
-        kIT_Truth = 29,
-        kIT_Strength = 30,
-        kIT_Elder = 31,
-        kIT_Wild = 32,
-        kIT_Lifegiver = 33,
-        kIT_Warrior = 34,
-        kIT_Chozo = 35,
-        kIT_Nature = 36,
-        kIT_Sun = 37,
-        kIT_World = 38,
-        kIT_Spirit = 39,
-        kIT_Newborn = 40,
-
-        kIT_Max
+    enum class EItemType : int {
+        Invalid = -1,
+        PowerBeam = 0,
+        IceBeam = 1,
+        WaveBeam = 2,
+        PlasmaBeam = 3,
+        Missiles = 4,
+        ScanVisor = 5,
+        MorphBallBombs = 6,
+        PowerBombs = 7,
+        Flamethrower = 8,
+        ThermalVisor = 9,
+        ChargeBeam = 10,
+        SuperMissile = 11,
+        GrappleBeam = 12,
+        XRayVisor = 13,
+        IceSpreader = 14,
+        SpaceJumpBoots = 15,
+        MorphBall = 16,
+        CombatVisor = 17,
+        BoostBall = 18,
+        SpiderBall = 19,
+        PowerSuit = 20,
+        GravitySuit = 21,
+        VariaSuit = 22,
+        PhazonSuit = 23,
+        EnergyTanks = 24,
+        UnknownItem1 = 25,
+        HealthRefill = 26,
+        UnknownItem2 = 27,
+        Wavebuster = 28,
+        Truth = 29,
+        Strength = 30,
+        Elder = 31,
+        Wild = 32,
+        Lifegiver = 33,
+        Warrior = 34,
+        Chozo = 35,
+        Nature = 36,
+        Sun = 37,
+        World = 38,
+        Spirit = 39,
+        Newborn = 40,
+        Max
     };
 
     enum EPlayerVisorMP1 {
@@ -62,6 +62,7 @@ public:
         kPV_Scan,
         kPV_Thermal,
     };
+
     enum EPlayerSuit {
         kPS_Invalid = -1,
         kPS_Power,
@@ -84,7 +85,11 @@ public:
         kBI_Phazon2 = 27,
     };
 
-    struct CPowerUp {
+    class CPowerUp {
+    private:
+        int mAmount;
+        int mCapacity;
+    public:
         CPowerUp(int,int);
         CPowerUp(CInputStream &);
         void PutTo(COutputStream &);
@@ -93,7 +98,7 @@ public:
     CPlayerStateMP1(void);
     CPlayerStateMP1(CInputStream &,uint);
     ~CPlayerStateMP1();
-    int GetItemMax(CPlayerStateMP1::EItemType);
+    static int GetItemMax(CPlayerStateMP1::EItemType);
     void ResetFromStream(CInputStream &,uint);
     void PutTo(COutputStream &);
 
@@ -152,91 +157,91 @@ public:
 
 inline const char* getItemName(CPlayerStateMP1::EItemType type) {
     switch (type) {
-    case CPlayerStateMP1::kIT_Invalid:
+    case CPlayerStateMP1::EItemType::Invalid:
         return "Invalid";
-    case CPlayerStateMP1::kIT_PowerBeam:
+    case CPlayerStateMP1::EItemType::PowerBeam:
         return "PowerBeam";
-    case CPlayerStateMP1::kIT_IceBeam:
+    case CPlayerStateMP1::EItemType::IceBeam:
         return "IceBeam";
-    case CPlayerStateMP1::kIT_WaveBeam:
+    case CPlayerStateMP1::EItemType::WaveBeam:
         return "WaveBeam";
-    case CPlayerStateMP1::kIT_PlasmaBeam:
+    case CPlayerStateMP1::EItemType::PlasmaBeam:
         return "PlasmaBeam";
-    case CPlayerStateMP1::kIT_Missiles:
+    case CPlayerStateMP1::EItemType::Missiles:
         return "Missiles";
-    case CPlayerStateMP1::kIT_ScanVisor:
+    case CPlayerStateMP1::EItemType::ScanVisor:
         return "ScanVisor";
-    case CPlayerStateMP1::kIT_MorphBallBombs:
+    case CPlayerStateMP1::EItemType::MorphBallBombs:
         return "MorphBallBombs";
-    case CPlayerStateMP1::kIT_PowerBombs:
+    case CPlayerStateMP1::EItemType::PowerBombs:
         return "PowerBombs";
-    case CPlayerStateMP1::kIT_Flamethrower:
+    case CPlayerStateMP1::EItemType::Flamethrower:
         return "Flamethrower";
-    case CPlayerStateMP1::kIT_ThermalVisor:
+    case CPlayerStateMP1::EItemType::ThermalVisor:
         return "ThermalVisor";
-    case CPlayerStateMP1::kIT_ChargeBeam:
+    case CPlayerStateMP1::EItemType::ChargeBeam:
         return "ChargeBeam";
-    case CPlayerStateMP1::kIT_SuperMissile:
+    case CPlayerStateMP1::EItemType::SuperMissile:
         return "SuperMissile";
-    case CPlayerStateMP1::kIT_GrappleBeam:
+    case CPlayerStateMP1::EItemType::GrappleBeam:
         return "GrappleBeam";
-    case CPlayerStateMP1::kIT_XRayVisor:
+    case CPlayerStateMP1::EItemType::XRayVisor:
         return "XRayVisor";
-    case CPlayerStateMP1::kIT_IceSpreader:
+    case CPlayerStateMP1::EItemType::IceSpreader:
         return "IceSpreader";
-    case CPlayerStateMP1::kIT_SpaceJumpBoots:
+    case CPlayerStateMP1::EItemType::SpaceJumpBoots:
         return "SpaceJumpBoots";
-    case CPlayerStateMP1::kIT_MorphBall:
+    case CPlayerStateMP1::EItemType::MorphBall:
         return "MorphBall";
-    case CPlayerStateMP1::kIT_CombatVisor:
+    case CPlayerStateMP1::EItemType::CombatVisor:
         return "CombatVisor";
-    case CPlayerStateMP1::kIT_BoostBall:
+    case CPlayerStateMP1::EItemType::BoostBall:
         return "BoostBall";
-    case CPlayerStateMP1::kIT_SpiderBall:
+    case CPlayerStateMP1::EItemType::SpiderBall:
         return "SpiderBall";
-    case CPlayerStateMP1::kIT_PowerSuit:
+    case CPlayerStateMP1::EItemType::PowerSuit:
         return "PowerSuit";
-    case CPlayerStateMP1::kIT_GravitySuit:
+    case CPlayerStateMP1::EItemType::GravitySuit:
         return "GravitySuit";
-    case CPlayerStateMP1::kIT_VariaSuit:
+    case CPlayerStateMP1::EItemType::VariaSuit:
         return "VariaSuit";
-    case CPlayerStateMP1::kIT_PhazonSuit:
+    case CPlayerStateMP1::EItemType::PhazonSuit:
         return "PhazonSuit";
-    case CPlayerStateMP1::kIT_EnergyTanks:
+    case CPlayerStateMP1::EItemType::EnergyTanks:
         return "EnergyTanks";
-    case CPlayerStateMP1::kIT_UnknownItem1:
+    case CPlayerStateMP1::EItemType::UnknownItem1:
         return "UnknownItem1";
-    case CPlayerStateMP1::kIT_HealthRefill:
+    case CPlayerStateMP1::EItemType::HealthRefill:
         return "HealthRefill";
-    case CPlayerStateMP1::kIT_UnknownItem2:
+    case CPlayerStateMP1::EItemType::UnknownItem2:
         return "UnknownItem2";
-    case CPlayerStateMP1::kIT_Wavebuster:
+    case CPlayerStateMP1::EItemType::Wavebuster:
         return "Wavebuster";
-    case CPlayerStateMP1::kIT_Truth:
+    case CPlayerStateMP1::EItemType::Truth:
         return "Truth";
-    case CPlayerStateMP1::kIT_Strength:
+    case CPlayerStateMP1::EItemType::Strength:
         return "Strength";
-    case CPlayerStateMP1::kIT_Elder:
+    case CPlayerStateMP1::EItemType::Elder:
         return "Elder";
-    case CPlayerStateMP1::kIT_Wild:
+    case CPlayerStateMP1::EItemType::Wild:
         return "Wild";
-    case CPlayerStateMP1::kIT_Lifegiver:
+    case CPlayerStateMP1::EItemType::Lifegiver:
         return "Lifegiver";
-    case CPlayerStateMP1::kIT_Warrior:
+    case CPlayerStateMP1::EItemType::Warrior:
         return "Warrior";
-    case CPlayerStateMP1::kIT_Chozo:
+    case CPlayerStateMP1::EItemType::Chozo:
         return "Chozo";
-    case CPlayerStateMP1::kIT_Nature:
+    case CPlayerStateMP1::EItemType::Nature:
         return "Nature";
-    case CPlayerStateMP1::kIT_Sun:
+    case CPlayerStateMP1::EItemType::Sun:
         return "Sun";
-    case CPlayerStateMP1::kIT_World:
+    case CPlayerStateMP1::EItemType::World:
         return "World";
-    case CPlayerStateMP1::kIT_Spirit:
+    case CPlayerStateMP1::EItemType::Spirit:
         return "Spirit";
-    case CPlayerStateMP1::kIT_Newborn:
+    case CPlayerStateMP1::EItemType::Newborn:
         return "Newborn";
-    case CPlayerStateMP1::kIT_Max:
+    case CPlayerStateMP1::EItemType::Max:
         return "Max";
     default:
         return "Unknown";

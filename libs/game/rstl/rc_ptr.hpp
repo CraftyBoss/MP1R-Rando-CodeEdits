@@ -4,47 +4,77 @@
 #include "types.h"
 #include <atomic>
 
+// rc_ptrs seem to be almost entirely changed since MP1
 namespace rstl {
-    class rc_ptr_private {
-    public:
-        rc_ptr_private(const void* ptr) : x0_ptr(ptr), x4_refCount(1) {}
-        rc_ptr_private(const void* ptr, int refCount) : x0_ptr(ptr), x4_refCount(refCount) {}
-        ~rc_ptr_private() {}
 
-        void* GetPtr() const { return const_cast< void* >(x0_ptr); }
-        int GetRefCount() const { return x4_refCount; }
-        int AddRef() { return ++x4_refCount; }
-        int DelRef() { return --x4_refCount; }
+    // this could just be a namespace
+    struct rc_ptr_private {
+        struct rc_ptr_control_block_base {
+            virtual bool release() { return false; }
+            virtual void destroy() {}
+            virtual ~rc_ptr_control_block_base() = default;
+        };
 
-        const void* x0_ptr;
-        std::atomic<int> x4_refCount;
+        struct rc_ptr_control_block_null : rc_ptr_control_block_base {
+            bool release() override { return false; }
+            void destroy() override { }
+            ~rc_ptr_control_block_null() override = default;
+        };
+
+        template <typename T>
+        struct rc_ptr_default_control_block : rc_ptr_control_block_base {
+            bool release() override {
+                mPtr = nullptr;
+                return true;
+            }
+            void destroy() override {
+                if(this) {
+                    ~rc_ptr_default_control_block<T>();
+                }
+            }
+            // the dtor for this type makes no sense...
+
+            T* mPtr;
+        };
+
+        rc_ptr_control_block_base* mControlBlock; // this isnt right, it seems like this type isnt a pointer, but im not sure how else it'd work...
+        std::atomic<int> refCount;
 
         static rc_ptr_private sNull;
     };
 
-    template < typename T >
-    class rc_ptr {
-    public:
-        rc_ptr() : x0_refData(&rc_ptr_private::sNull) { x0_refData.AddRef(); }
-        rc_ptr(const T* ptr) : x0_refData(rc_ptr_private(ptr)) {}
-        rc_ptr(const rc_ptr& other) : x0_refData(other.x0_refData) { x0_refData.AddRef(); }
-        ~rc_ptr() { ReleaseData(); }
-        T* GetPtr() const { return static_cast< T* >(x0_refData.GetPtr()); }
-        void ReleaseData();
-        T* operator->() const { return GetPtr(); }
-        T& operator*() const { return *GetPtr(); }
-        operator bool() const { return GetPtr() != nullptr; }
+    // this is always a size of 0x10
+    template <typename T>
+    struct rc_ptr {
+        rc_ptr_private *privData;
 
-    private:
-        rc_ptr_private x0_refData;
-    };
-
-    template < typename T >
-    void rc_ptr< T >::ReleaseData() {
-        if (x0_refData.DelRef() <= 0) {
-            delete GetPtr();
+        virtual ~rc_ptr() {
+            privData->refCount--;
+            if(privData->refCount <= 0 )
+                privData->mControlBlock->destroy();
+            delete this;
         }
-    }
+
+        rc_ptr() = default;
+
+        rc_ptr(const rc_ptr& other) = default;
+
+        rc_ptr(rc_ptr& other) {
+            this->privData = other.privData;
+            privData->refCount++;
+        }
+
+        rc_ptr(rc_ptr* other) {
+            this->privData = other->privData;
+            privData->refCount++;
+        }
+
+        rc_ptr& operator=(const rc_ptr& other) {
+            this->privData = other.privData;
+            privData->refCount++;
+            return *this;
+        }
+    };
 
     template < typename T >
     class ncrc_ptr : public rc_ptr< T > {
@@ -54,10 +84,16 @@ namespace rstl {
         ncrc_ptr(const rc_ptr< T >& other) : rc_ptr< T >(other) {}
     };
 
-    template < typename T >
-    bool operator==(const rc_ptr< T >& left, const rc_ptr< T >& right) {
-        return left.GetPtr() == right.GetPtr();
-    }
+    // based off what i can tell, it seems like there are std-like make_ funcs for each control block type
+    // the only evidence is this symbol:
+    // rstl::ncrc_ptr<CModConSceneNode::SInstanceBufferData>
+    //      rstl::make_ncrc_ptr<CModConSceneNode::SInstanceBufferData, NRenderInstanced::SInstanceDataEntry const&,
+    //                          rstl::enum_bit_field<EVertexComponent, unsigned int, (EVertexComponent)32> const&, unsigned int const&>
+    //                          (NRenderInstanced::SInstanceDataEntry const&, rstl::enum_bit_field<EVertexComponent, unsigned int,
+    //                          (EVertexComponent)32> const&, unsigned int const&)
+    template <class T, class B, class... Args>
+    ncrc_ptr<T> make_ncrc_ptr(B& control_block, Args&&... args);
+
 
 } // namespace rstl
 

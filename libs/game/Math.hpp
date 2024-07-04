@@ -11,6 +11,16 @@ public:
     inline CVector3f(float x, float y, float z) : x(x), y(y), z(z) {};
 };
 
+struct CVector2i {
+public:
+    int x;
+    int y;
+
+    inline CVector2i() : x(0), y(0) {};
+
+    inline CVector2i(int x, int y) : x(x), y(y) {};
+};
+
 struct CQuaternion {
 public:
     float w;
@@ -170,4 +180,10 @@ private:
 
     static CAABox skInvertedBox;
     static CAABox skZeroBox;
+};
+
+class CAABox2i {
+private:
+    CVector2i min;
+    CVector2i max;
 };

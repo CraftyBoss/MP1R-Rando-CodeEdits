@@ -7,18 +7,15 @@ namespace rstl {
     template <typename T>
     class char_traits;
 
-    class rmemory_allocator;
-
-    template <typename T, class Allocator>
-    class vector {
-        Allocator allocator;
-        int count;
-        int capacity;
-        T* items;
-    };
-
     template <typename T, int size, class Allocator>
     class growable_reserved_vector;
+
+    template <typename T>
+    class less;
+
+    // if i had to guess, these allocators probably all use compile time virtualization
+    // to be able to customize how something allocates without needing a reference to an actual allocator class
+    class rmemory_allocator;
 
     template <typename T>
     class shared_owned_memory_allocator;

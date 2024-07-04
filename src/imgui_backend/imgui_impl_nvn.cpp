@@ -57,8 +57,6 @@ namespace ImguiNvnBackend {
                 ScaleWindow(g.Windows[i], scale);
     }
 
-
-
 // backend impl
 
     NvnBackendData *getBackendData() {
@@ -441,7 +439,7 @@ namespace ImguiNvnBackend {
     }
 
     void updateProjection(ImVec2 dispSize) {
-        orthoRH_ZO(getBackendData()->mProjMatrix, 0.0f, dispSize.x, dispSize.y, 0.0f, -1.0f, 1.0f);
+        orthoRH_ZO(getBackendData()->mShaderUBO.mMtx, 0.0f, dispSize.x, dispSize.y, 0.0f, -1.0f, 1.0f);
     }
 
     void updateScale(bool isDocked) {
@@ -586,12 +584,16 @@ namespace ImguiNvnBackend {
         bd->cmdBuf->BeginRecording(); // start recording our commands to the cmd buffer
 
         bd->cmdBuf->BindProgram(&bd->shaderProgram, nvn::ShaderStageBits::VERTEX |
-                                                    nvn::ShaderStageBits::FRAGMENT); // bind main imgui shader
+                                                        nvn::ShaderStageBits::FRAGMENT); // bind main imgui shader
 
         bd->cmdBuf->BindUniformBuffer(nvn::ShaderStage::VERTEX, 0, *bd->uniformMemory,
-                                      UBOSIZE); // bind uniform block ptr
-        bd->cmdBuf->UpdateUniformBuffer(*bd->uniformMemory, UBOSIZE, 0, sizeof(bd->mProjMatrix),
-                                        &bd->mProjMatrix); // add projection matrix data to uniform data
+                                      UBOSIZE); // bind uniform block ptr to vertex stage
+
+        bd->cmdBuf->BindUniformBuffer(nvn::ShaderStage::FRAGMENT, 0, *bd->uniformMemory,
+                                      UBOSIZE); // bind uniform block ptr to fragment stage
+
+        bd->cmdBuf->UpdateUniformBuffer(*bd->uniformMemory, UBOSIZE, 0, sizeof(bd->mShaderUBO),
+                                        &bd->mShaderUBO); // add projection matrix data to uniform data
 
         setRenderStates(); // sets up the rest of the render state, required so that our shader properly gets drawn to the screen
 
@@ -649,7 +651,7 @@ namespace ImguiNvnBackend {
                 // if our previous handle is different from the current, bind the texture
                 if (boundTextureHandle != TexID) {
                     boundTextureHandle = TexID;
-                    bd->cmdBuf->BindTexture(nvn::ShaderStage::FRAGMENT, 0, TexID);
+                    bd->cmdBuf->BindTexture(nvn::ShaderStage::FRAGMENT, 1, TexID);
                 }
                 // draw our vertices using the indices stored in the buffer, offset by the current command index offset,
                 // as well as the current offset into our buffer.

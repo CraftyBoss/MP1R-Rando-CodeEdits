@@ -6,16 +6,24 @@
 class SLdrPickupMP1 : public SGOComponentProperties
 {
 public:
+    SLdrPickupMP1();
+
+    SLdrVector_MP1Typedef mCollExtent;
+    SLdrVector_MP1Typedef mCollOffset;
+    CObjectId itemID;
+    SLdrAnimSet_MP1Typedef animSet;
+    CObjectId mAreaAssetId;
+    SLdrVector_MP1Typedef vec3;
+    SLdrMapInfo_MP1Typedef mapInfo;
+    SLdrActorInformation_MP1Typedef actorInfo;
+
     int mItemType;
-    int unkInt2;
-    int unkInt3;
-    float unkFloat1;
-    float unkFloat2;
-    float unkFloat3;
-    bool unkBool9;
-    bool unkBool10;
-    bool unkBool11;
-    bool unkBool12;
+    int mItemCapacity;
+    int mItemStackSize;
+    float mPossibility;
+    float mLifeTime;
+    float mFadeInTime;
+    float mStartDelay;
     bool unkBool13;
     bool unkBool14;
 };

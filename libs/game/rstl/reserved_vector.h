@@ -2,8 +2,8 @@
 #define _RSTL_RESERVED_VECTOR
 
 #include "types.h"
+#include <Stream/CInputStream.h>
 
-class CInputStream;
 
 namespace rstl {
     template < typename T, int N >

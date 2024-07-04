@@ -1,12 +1,13 @@
 #pragma once
 #include "rstl/misc.h"
 #include <rstl/string.h>
+#include <Stream/CInputStream.h>
 
-class CInputStream;
 class COutputStream;
 
 class CGuid {
 public:
+    CGuid() { low = 0; high = 0; }
 
     CGuid(CInputStream &);
     CGuid(char const(&)[37]);
@@ -29,11 +30,18 @@ public:
     };
 };
 
+static bool operator==(CGuid const &left, CGuid const &right) {
+    return left.low == right.low && left.high == right.high;
+}
+
 class CObjectId : public CGuid {
 public:
+    CObjectId() : CGuid() {}
+
     CObjectId(CInputStream &);
 
     explicit inline CObjectId(char const(&str)[37]) : CGuid(str) {}
+    explicit inline CObjectId(const CGuid& other) : CGuid(other) {}
 
     static CObjectId* Invalid(void);
     static CObjectId* FromString(rstl::basic_string<char,rstl::char_traits<char>,rstl::rmemory_allocator> const&);

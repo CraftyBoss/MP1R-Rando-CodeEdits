@@ -8,32 +8,40 @@ namespace NGameWater {
 }
 
 struct SLdrVector_MP1Typedef {
+    SLdrVector_MP1Typedef();
     float x;
     float y;
     float z;
 };
 
 struct SLdrAnimSet_MP1Typedef {
+    SLdrAnimSet_MP1Typedef();
     CObjectId mObjId;
     rstl::string mString1;
     rstl::string mString2;
 };
 
 struct SLdrMapInfo_MP1Typedef {
+    SLdrMapInfo_MP1Typedef();
     CObjectId mObjId;
-    int unkInt1;
-    int unkInt2;
+    int unkInt1 = 0;
+    int unkInt2 = 0;
 };
 
 struct SLdrLighting_MP1Typedef {
+    SLdrLighting_MP1Typedef();
     char size[0x5C];
 };
 
 struct SLdrScannable_MP1Typedef {
-    char size[0x14];
+    SLdrScannable_MP1Typedef();
+
+    CObjectId mScanFileId;
+    bool byte10;
 };
 
 struct SLdrVisor_MP1Typedef {
+    SLdrVisor_MP1Typedef();
     int unkInt1;
     bool unkBool1;
     bool unkBool2;
@@ -41,6 +49,8 @@ struct SLdrVisor_MP1Typedef {
 };
 
 struct __attribute__((aligned(2))) SLdrActorInformation_MP1Typedef {
+    SLdrActorInformation_MP1Typedef();
+
     CObjectId objId1;
     CObjectId objId2;
     CObjectId objId3;

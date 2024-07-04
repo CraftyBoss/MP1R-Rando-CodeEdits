@@ -4,8 +4,8 @@
 #include "types.h"
 
 #include "rstl/misc.h"
+#include <Stream/CInputStream.h>
 
-class CInputStream;
 class COutputStream;
 
 namespace rstl {

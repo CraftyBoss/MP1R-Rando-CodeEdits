@@ -47,6 +47,8 @@ typedef unsigned long    undefined8;
 #define ON_INIT         __attribute__((constructor))
 #define NOINLINE        __attribute__((noinline))
 #define NORETURN        __attribute__((noreturn))
+#define EXPORT_SYM      __attribute__ ((visibility ("default")))
+#define STRIP_SYM       __attribute__ ((visibility ("hidden")))
 #define UNREACHABLE __builtin_unreachable()
 #define PAGE_SIZE (0x1000)
 #define ALWAYS_INLINE inline __attribute__((always_inline))

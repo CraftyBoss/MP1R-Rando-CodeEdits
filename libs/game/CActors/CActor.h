@@ -13,7 +13,6 @@ class CDamageInfoMP1;
 class CWeaponModeMP1;
 class CMaterialFilterMP1;
 class CScriptWaterMP1;
-class CEntityGOC;
 
 class CHealthInfoMP1 {
 public:
