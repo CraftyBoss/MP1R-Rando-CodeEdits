@@ -1,4 +1,5 @@
 #include "patches.hpp"
+#include "RandoConfig.h"
 #include <Component/CGameObjectComponent.h>
 #include <Types/CFourCC.h>
 #include <logger/Logger.hpp>
@@ -58,8 +59,7 @@ void runCodePatches() {
     p.WriteInst(inst::Nop());
 
     // removes call to CMaterialExec::DrawMesh (we call it ourselves in an inline hook)
-    p.Seek(0xB55DA4);
-    p.WriteInst(inst::Nop());
+    p.Seek(0xB55DA4); p.WriteInst(inst::Nop());
 
     // changes an unused material index located in a static array used when initializing an SIconInstance for CMappableObjectData
     patch::RandomAccessPatcher rop;

@@ -6,6 +6,7 @@
 #include "CObject/CObjectId.h"
 #include <CUniverse/CUniverseStateManager.h>
 #include <World/CWorldStateMP1.h>
+#include <Types/CFourCC.h>
 #include <rstl/rc_ptr.hpp>
 #include <rstl/string.h>
 
@@ -37,7 +38,7 @@ public:
         void PutTo(COutputStream &);
 
         CObjectId mAreaId;
-        int mSaveSlot;
+        CFourCC mSaveMagic;
     };
 
     enum EReturnTrueIfAreaInvalid {};

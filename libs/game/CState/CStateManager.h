@@ -92,11 +92,7 @@ public:
     void UIDisplayManager(void);
 
     // world record for largest struct ever holy crap
-    unsigned int unsigned_int0;
-    char gap4[2];
-    int cstatemanagerobject6;
-    char gapA[639014];
-    char gap9C030[4473104];
+    char gapA[5112128];
     CGameAreaManager * mGameAreaManager;
     void *unkPtr1;
     CStateManagerGameLogicMP1 *mStateManagerGameLogic;

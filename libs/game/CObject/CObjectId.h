@@ -7,10 +7,11 @@ class COutputStream;
 
 class CGuid {
 public:
-    CGuid() { low = 0; high = 0; }
-
     CGuid(CInputStream &);
     CGuid(char const(&)[37]);
+
+    inline CGuid() { low = 0; high = 0; }
+    inline CGuid(uint64_t a, uint64_t b) { low = a; high = b; }
 
     void PutTo(COutputStream &) const;
     int GetPutToSize(void) const; // return 0x10;
@@ -42,6 +43,7 @@ public:
 
     explicit inline CObjectId(char const(&str)[37]) : CGuid(str) {}
     explicit inline CObjectId(const CGuid& other) : CGuid(other) {}
+    explicit inline CObjectId(uint64_t low, uint64_t high) : CGuid(low, high) {}
 
     static CObjectId* Invalid(void);
     static CObjectId* FromString(rstl::basic_string<char,rstl::char_traits<char>,rstl::rmemory_allocator> const&);

@@ -8,8 +8,20 @@
 #include "GetField.h"
 
 class CStateManager;
+class CCollisionInfoListMP1;
+class CCollisionInfoList;
+
 class CPhysicsActorMP1 : public CActorMP1 {
 public:
+    virtual void GetCollisionPrimitive(void);
+    virtual void GetPrimitiveTransform(void);
+    virtual void CollidedWith(TUniqueId const&,CCollisionInfoListMP1 const&,CStateManager &);
+    virtual void CollidedWithNew(CStateManager &,CCollisionInfoList const&);
+    virtual void GetStepDownHeight(void);
+    virtual void GetStepUpHeight(void);
+    virtual void GetWeight(CStateManager const&);
+    virtual void IsPhysicsObjectActive(CStateManager const&);
+
     CVector3f *GetVelocityWR(const CStateManager &mgr) const;
     //_ZN16CPhysicsActorMP113SetVelocityWRER13CStateManagerRK9CVector3f
     //_ZN16CPhysicsActorMP113SetVelocityWRERK13CStateManagerRK9CVector3f

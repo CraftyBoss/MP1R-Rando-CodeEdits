@@ -187,3 +187,8 @@ private:
     CVector2i min;
     CVector2i max;
 };
+
+class CMath {
+public:
+    static float CeilingF(float);
+};

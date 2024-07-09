@@ -11,7 +11,7 @@
 namespace NGeneration {
     struct SGenerationInfo {
         CObjectId mAreaAssetId;
-        CGameObjectId mObjId;
+        TUniqueId mObjId;
         bool unkBool1;
         bool unkBool2;
         int unkInt1;
@@ -51,8 +51,8 @@ public:
         SCreateInfo(CValueVersionId<uint,uint,ushort,16u,16u>,CValueVersionId<uint,uint,ushort,16u,16u>,NGeneration::SGenerationInfo const&,CGameArea &,CGameObjectComponent::SCreateInfo::EIsGeneratedObject,CGameObjectComponent::SCreateInfo::EIsLayerActive,CGameObjectComponent::SCreateInfo::EIsAreaRelativeTransform);
         SCreateInfo(CValueVersionId<uint,uint,ushort,16u,16u>,CGameObjectComponent::SCreateInfo const&);
 
-        CGameObjectId verId1;
-        CGameObjectId verId2;
+        TUniqueId verId1;
+        TUniqueId verId2;
         NGeneration::SGenerationInfo mGenerationInfo;
         CGameArea *mGameArea;
         bool mIsGeneratedObject;

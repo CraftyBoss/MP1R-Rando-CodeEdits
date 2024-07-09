@@ -10,6 +10,7 @@
 #include <Math.hpp>
 
 #include <cmath>
+#include <helpers/StringHelper.h>
 #include <rstl/key_value_vector.h>
 
 #include "helpers.h"
@@ -25,6 +26,7 @@
 #include "globals.h"
 
 #include "InventoryMenu.hpp"
+#include "RandoConfig.h"
 
 #define IMGUI_ENABLED true
 
@@ -245,27 +247,27 @@ void drawDebugWindow() {
         ImGui::Text("Current Area Guid: %s", gpGameState->CurrentWorldState()->GetCurrentArea().AsString().data());
     }
 
-//    if(ImGui::CollapsingHeader("Current World Relay Messages")) {
-//        if(gpGameState) {
-//            auto worldState = gpGameState->CurrentWorldState();
-//
-//            if(worldState) {
-//                auto mailbox = *worldState->Mailbox();
-//                if(mailbox) {
-//                    auto& msgs = mailbox->mMemoryRelayMessages;
-//                    ImGui::Text("Message Count: %d", msgs.size());
-//                    ImGui::Text("Message Capacity: %d", msgs.capacity());
-//
-//                    for (int i = 0; i < msgs.size(); ++i) {
-//                        ImGui::Text("Entry[%d]: Guid %s", i, msgs.at(i).mRelayGuid.AsString().data());
-//                    }
-//                }else
-//                    ImGui::Text("Mailbox is null.");
-//            }else
-//                ImGui::Text("World state is null.");
-//        }else
-//            ImGui::Text("Game state is null.");
-//    }
+    if(ImGui::CollapsingHeader("Current World Relay Messages")) {
+        if(gpGameState) {
+            auto worldState = gpGameState->CurrentWorldState();
+
+            if(worldState) {
+                auto mailbox = *worldState->Mailbox();
+                if(mailbox) {
+                    auto& msgs = mailbox->mMemoryRelayMessages;
+                    ImGui::Text("Message Count: %d", msgs.size());
+                    ImGui::Text("Message Capacity: %d", msgs.capacity());
+
+                    for (int i = 0; i < msgs.size(); ++i) {
+                        ImGui::Text("Entry[%d]: Guid %s", i, msgs.at(i).mRelayGuid.AsString().data());
+                    }
+                }else
+                    ImGui::Text("Mailbox is null.");
+            }else
+                ImGui::Text("World state is null.");
+        }else
+            ImGui::Text("Game state is null.");
+    }
 
     if(ImGui::BeginMenu("Warp Menu")) {
         RoomWarper::DrawWarpMenu();
@@ -367,8 +369,21 @@ HOOK_DEFINE_TRAMPOLINE(GetScriptLoaderCompCount) {
 
 HOOK_DEFINE_TRAMPOLINE(OpenFileHook) {
     static nn::Result Callback(nn::fs::FileHandle* handleOut, char const* path, int mode) {
-        Logger::log("Opening File at Path: %s\n", path);
-        return Orig(handleOut, path, mode);
+        Logger::log("Opening File at Path: %s", path);
+        nn::Result result = Orig(handleOut, path, mode);
+        Logger::log(" Handle: %ld\n", handleOut->_internal);
+
+        return result;
+    }
+};
+
+HOOK_DEFINE_TRAMPOLINE(WriteFileHook) {
+    static nn::Result Callback(nn::fs::FileHandle handle, s64 position, void const* buffer, u64 size, nn::fs::WriteOption const& option) {
+        Logger::log("Writing File with handle: %ld\n", handle._internal);
+
+        exceptionHandlerNoInfo(true);
+
+        return Orig(handle, position, buffer, size, option);
     }
 };
 
@@ -465,8 +480,6 @@ EXPORT_SYM void updateCtxRenderData(CGuiMap* renderMap, const CMapWorldMP1& worl
     renderData->mRenderDataBitfield |= 2;
 }
 
-// CAutoMapControllerMP1::UpdateAreaRenderState(CObjectId const&,CMapWorldMP1 const&,CMapWorldInfoMP1 const&,CGuiMapContextSceneNodeProxy &)	.text
-// CGuiMapContextSceneNode::CGuiMapContextSceneNode(CScene &,CValueVersionId<uint,ushort,ushort,16u,16u>,CGuiMapContextSceneNodeCreateData const&,rstl::ncrc_ptr<CGuiMapContextSceneNodeData> const&)	.text
 HOOK_DEFINE_TRAMPOLINE(UpdatePickupDotDataHook) {
     EXPORT_SYM static void Callback(CAutoMapControllerMP1 *thiz, const CObjectId& areaId, const CMapWorldMP1& world, const CMapWorldInfoMP1& worldInfo, CGuiMapContextSceneNodeProxy& ctxProxy) {
         if(thiz == nullptr || thiz->mFocusWorld == nullptr) {
@@ -564,36 +577,73 @@ HOOK_DEFINE_INLINE(FixMapControllerRegister3Hook) {
 HOOK_DEFINE_INLINE(OverrideCreditsSpeedHook) {
     static void Callback(exl::hook::InlineCtx* ctx) {
         auto thiz = (CCreditsGOC*)ctx->X[19];
-
         float yInput = InputHelper::getLeftStickY();
-
         thiz->mScrollSpeed = fabs((double)yInput) > 0.001f ? (-yInput * CREDITS_SPEED) : 1.0f;
     }
 };
-
-
-
-HOOK_DEFINE_INLINE(TempHook1) {
+// CGameState::ResetGameState(CGameState const&,CGameState::SInitialState const&,CGameState::EForcePreserveData)	.text
+HOOK_DEFINE_INLINE(ChangeInitialAreaHook) {
     static void Callback(exl::hook::InlineCtx* ctx) {
-        Logger::log("Game State Ctor 1 called.\n");
         auto initState = (CGameState::SInitialState*)ctx->X[2];
 
-        Logger::log("Initial State ID: %s\n", initState->mAreaId.AsString().data());
-        Logger::log("Initial State Save Slot: %d\n", initState->mSaveSlot);
+        if(initState->mSaveMagic.value != -1) {
+            if(initState->mAreaId == CObjectId("a8444ff6-e4a4-4183-bfec-73d6d6407fa5")) {
+                Logger::log("Setting Initial Area ID to Landing Site.\n");
+                initState->mAreaId = CObjectId("0676e13f-15cf-4bc4-a058-5e056be4cfa4");
+            }
+        }
     }
 };
 
-HOOK_DEFINE_INLINE(TempHook2) {
-    static void Callback(exl::hook::InlineCtx* ctx) {
-        Logger::log("Game State Ctor 2 called.\n");
+HOOK_DEFINE_TRAMPOLINE(GetTextTeleportValueHook) {
+    static void Callback(rstl::string& label, CObjectId* objId) {
+        if(StringHelper::isEqualString(label.data(), "[CEDB5BA7]_000")) {
+            Logger::log("Replacing Intro Text with world start text.\n");
+            label = rstl::string_l("[398D1DEC]_000");
+            Logger::log("Done.\n");
+        }
 
-        auto thiz = (CGameState*)ctx->X[19];
+        Orig(label, objId);
+    }
+};
 
-        Logger::log("Initial State ID: %s\n", thiz->mInitialArea.mAreaId.AsString().data());
-        Logger::log("Initial State Save Slot: %d\n", thiz->mInitialArea.mSaveSlot);
+HOOK_DEFINE_REPLACE(GetTankCapacityHook) {
+    static float Callback() {
+        return RandoConfig::eTankCapacity;
+    }
+};
 
-        Logger::log("Desired State ID: %s\n", thiz->mDesiredArea.mAreaId.AsString().data());
-        Logger::log("Desired State Save Slot: %d\n", thiz->mDesiredArea.mSaveSlot);
+HOOK_DEFINE_REPLACE(GetBaseHealthHook) {
+    static float Callback() {
+        return RandoConfig::baseHealth;
+    }
+};
+
+HOOK_DEFINE_REPLACE(GetMaxHealthHook) {
+    static float Callback(CPlayerStateMP1* thiz) {
+        return (((float)thiz->GetItemAmount(CPlayerStateMP1::EItemType::EnergyTanks)) * RandoConfig::eTankCapacity) + RandoConfig::baseHealth;
+    }
+};
+
+HOOK_DEFINE_INLINE(ChangeTankCapacityHook1) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::eTankCapacity); } };
+HOOK_DEFINE_INLINE(ChangeBaseHealthHook1) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::baseHealth); } };
+HOOK_DEFINE_INLINE(ChangeTankCapacityHook2) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::eTankCapacity); } };
+HOOK_DEFINE_INLINE(ChangeBaseHealthHook2) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::baseHealth); } };
+HOOK_DEFINE_INLINE(ChangeTankCapacityHook3) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::eTankCapacity); } };
+HOOK_DEFINE_INLINE(ChangeBaseHealthHook3) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::baseHealth); } };
+HOOK_DEFINE_INLINE(ChangeTankCapacityHook4) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::eTankCapacity); } };
+HOOK_DEFINE_INLINE(ChangeBaseHealthHook4) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::baseHealth); } };
+
+// reimplements CPlayerMP1::IsEnergyLow to use RandoConfig values
+HOOK_DEFINE_REPLACE(LowHealthCheckHook) {
+    static bool Callback(CPlayerMP1* thiz, CStateManager& mgr) {
+        auto& healthInfo = thiz->HealthInfo(mgr);
+        auto* playerState = CStateManagerGameLogicMP1::PlayerState();
+        float curHealth = fmaxf(CMath::CeilingF(healthInfo.mHealth), 0.0f);
+
+        float lowHealthThreshold = playerState->GetItemCapacity(CPlayerStateMP1::EItemType::EnergyTanks) <= 3 ? 0.10f * (3 * RandoConfig::eTankCapacity) : RandoConfig::baseHealth;
+
+        return curHealth <= lowHealthThreshold;
     }
 };
 
@@ -607,11 +657,6 @@ extern "C" void exl_main(void *x0, void *x1) {
 
     runCodePatches();
 
-    TempHook1::InstallAtOffset(0x408DBC);
-    TempHook2::InstallAtOffset(0x409300);
-
-//    OpenFileHook::InstallAtSymbol("_ZN2nn2fs8OpenFileEPNS0_10FileHandleEPKci");
-
     GetGameStateHook::InstallAtSymbol("_ZN17CGameStateManager18AssignNewGameStateERN4rstl8auto_ptrI10CGameStateEE");
     GetStateManagerHook::InstallAtSymbol("_ZN13CStateManager15InitializeStateEv");
 
@@ -621,6 +666,7 @@ extern "C" void exl_main(void *x0, void *x1) {
     // rando patches
     CheckForVariaHook::InstallAtOffset(0xD95F54);
 
+    // patches for item hint locations on map
     SwapMaterial1Hook::InstallAtOffset(0xB55D30);
     SwapMaterial2Hook::InstallAtOffset(0xB55D5C);
     SwapMaterial3Hook::InstallAtOffset(0xB55D84);
@@ -632,8 +678,27 @@ extern "C" void exl_main(void *x0, void *x1) {
     FixMapControllerRegister2Hook::InstallAtOffset(0xE5FD58);
     FixMapControllerRegister3Hook::InstallAtOffset(0xE5FDE0);
 
+    // credits changes
     OverrideCreditsSpeedHook::InstallAtOffset(0x577CC8);
 
+    // intro skip changes
+    ChangeInitialAreaHook::InstallAtOffset(0x40A75C);
+    GetTextTeleportValueHook::InstallAtSymbol("_ZN21CWorldTransitionIOWin18EnableTextTeleportERKN4rstl12basic_stringIcNS0_11char_traitsIcEENS0_17rmemory_allocatorEEERK9CObjectId");
+
+    // health system changes
+    GetTankCapacityHook::InstallAtSymbol("_ZN15CPlayerStateMP121GetEnergyTankCapacityEv");
+    GetBaseHealthHook::InstallAtSymbol("_ZN15CPlayerStateMP121GetBaseHealthCapacityEv");
+    GetMaxHealthHook::InstallAtSymbol("_ZNK15CPlayerStateMP112GetMaxHealthEv");
+    LowHealthCheckHook::InstallAtSymbol("_ZNK10CPlayerMP111IsEnergyLowERK13CStateManager");
+    ChangeTankCapacityHook1::InstallAtOffset(0xC88FE4);
+    ChangeBaseHealthHook1::InstallAtOffset(0xC88FFC);
+    ChangeTankCapacityHook2::InstallAtOffset(0xC88FA4);
+    ChangeBaseHealthHook2::InstallAtOffset(0xC88FB8);
+    ChangeTankCapacityHook3::InstallAtOffset(0xC890C8);
+    ChangeBaseHealthHook3::InstallAtOffset(0xC890E0);
+    ChangeTankCapacityHook4::InstallAtOffset(0xC89088);
+    ChangeBaseHealthHook4::InstallAtOffset(0xC8909C);
+    LowHealthCheckHook::InstallAtOffset(0xC69FFC);
 
     CGameState::mCinematicForceSkippableOverride = true;
 

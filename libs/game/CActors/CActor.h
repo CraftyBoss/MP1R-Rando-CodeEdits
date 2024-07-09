@@ -16,9 +16,9 @@ class CScriptWaterMP1;
 
 class CHealthInfoMP1 {
 public:
-    float heatlh;
-    //  inline float &GetA() const { return *GetField<float>(this, 0x0); }
-    //  inline float &GetB() const { return *GetField<float>(this, 0x4); }
+    float mHealth;
+    float mKnockbackResist;
+    float unkFloat;
 };
 
 namespace NSimpleShadow {
