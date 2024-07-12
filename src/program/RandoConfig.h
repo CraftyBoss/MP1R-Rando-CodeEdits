@@ -2,8 +2,8 @@
 #include <bit>
 
 namespace RandoConfig {
-    constexpr float eTankCapacity = 50.0f;
-    constexpr float baseHealth = eTankCapacity - 1.0f;
+    extern float eTankCapacity;
+    extern float baseHealth;
 
     // TODO: this
     void LoadValuesFromSeed();

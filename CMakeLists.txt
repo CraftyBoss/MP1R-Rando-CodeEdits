@@ -23,6 +23,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/module/subsdk9.json.template ${CMAKE_
 include_directories(${PROJECT_SOURCE_DIR}/src/lib)
 
 include_directories(${PROJECT_SOURCE_DIR}/libs/game)
+include_directories(${PROJECT_SOURCE_DIR}/libs/cJSON)
 include_directories(${PROJECT_SOURCE_DIR}/libs/NintendoSDK)
 include_directories(${PROJECT_SOURCE_DIR}/libs/NintendoSDK/nn)
 include_directories(${PROJECT_SOURCE_DIR}/libs/NintendoSDK/nvn)
@@ -35,7 +36,7 @@ include_directories(${PROJECT_SOURCE_DIR}/imgui)
 
 file(GLOB_RECURSE SOURCES_ASM ${PROJECT_SOURCE_DIR}/src/*.s)
 file(GLOB_RECURSE SOURCES_H ${PROJECT_SOURCE_DIR}/src/*.h ${PROJECT_SOURCE_DIR}/src/*.hpp)
-file(GLOB_RECURSE SOURCES_CXX ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.c)
+file(GLOB_RECURSE SOURCES_CXX ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.c ${PROJECT_SOURCE_DIR}/libs/cJSON/*.c)
 file(GLOB IMGUI_SOURCES ${PROJECT_SOURCE_DIR}/imgui/*.cpp)
 file(GLOB_RECURSE LOCAL_LIBRARIES ${PROJECT_SOURCE_DIR}/libs/*.a)
 

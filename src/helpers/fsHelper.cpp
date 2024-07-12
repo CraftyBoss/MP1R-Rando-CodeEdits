@@ -55,6 +55,39 @@ namespace FsHelper {
         nn::fs::CloseFile(handle);
     }
 
+    bool tryLoadFileFromPath(LoadData& loadData) {
+        nn::fs::FileHandle handle{};
+
+        if(!FsHelper::isFileExist(loadData.path)) {
+            Logger::log("Failed to Find File!\nPath: %s", loadData.path);
+            return false;
+        }
+
+        if(R_FAILED(nn::fs::OpenFile(&handle, loadData.path, nn::fs::OpenMode_Read))) {
+            Logger::log("Failed to open file at path: %s\n", loadData.path);
+            return false;
+        }
+
+        long size = 0;
+        nn::fs::GetFileSize(&size, handle);
+        loadData.buffer = nn::init::GetAllocator()->Allocate(size);
+        loadData.bufSize = size;
+
+        if(loadData.buffer == nullptr) {
+            Logger::log("Failed to Allocate Buffer! File Size: %ld", size);
+            return false;
+        }
+
+        if(R_FAILED(nn::fs::ReadFile(handle, 0, loadData.buffer, size))) {
+            Logger::log("Failed to read file at path: %s with size: %ld\n", loadData.path, size);
+            freeLoadDataBuffer(loadData);
+            return false;
+        }
+
+        nn::fs::CloseFile(handle);
+
+        return true;
+    }
 
     long getFileSize(const char *path) {
         nn::fs::FileHandle handle;
@@ -75,5 +108,9 @@ namespace FsHelper {
         nn::Result result = nn::fs::GetEntryType(&type, path);
 
         return type == nn::fs::DirectoryEntryType_File;
+    }
+
+    void freeLoadDataBuffer(LoadData& loadData) {
+        nn::init::GetAllocator()->Free(loadData.buffer);
     }
 }

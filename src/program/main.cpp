@@ -626,13 +626,13 @@ HOOK_DEFINE_REPLACE(GetMaxHealthHook) {
 };
 
 HOOK_DEFINE_INLINE(ChangeTankCapacityHook1) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::eTankCapacity); } };
-HOOK_DEFINE_INLINE(ChangeBaseHealthHook1) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::baseHealth); } };
+HOOK_DEFINE_INLINE(ChangeBaseHealthHook1) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] =   std::bit_cast<int>(RandoConfig::baseHealth); } };
 HOOK_DEFINE_INLINE(ChangeTankCapacityHook2) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::eTankCapacity); } };
-HOOK_DEFINE_INLINE(ChangeBaseHealthHook2) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::baseHealth); } };
+HOOK_DEFINE_INLINE(ChangeBaseHealthHook2) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] =   std::bit_cast<int>(RandoConfig::baseHealth); } };
 HOOK_DEFINE_INLINE(ChangeTankCapacityHook3) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::eTankCapacity); } };
-HOOK_DEFINE_INLINE(ChangeBaseHealthHook3) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::baseHealth); } };
+HOOK_DEFINE_INLINE(ChangeBaseHealthHook3) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] =   std::bit_cast<int>(RandoConfig::baseHealth); } };
 HOOK_DEFINE_INLINE(ChangeTankCapacityHook4) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::eTankCapacity); } };
-HOOK_DEFINE_INLINE(ChangeBaseHealthHook4) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] = std::bit_cast<int>(RandoConfig::baseHealth); } };
+HOOK_DEFINE_INLINE(ChangeBaseHealthHook4) { static void Callback(exl::hook::InlineCtx* ctx) { ctx->W[8] =   std::bit_cast<int>(RandoConfig::baseHealth); } };
 
 // reimplements CPlayerMP1::IsEnergyLow to use RandoConfig values
 HOOK_DEFINE_REPLACE(LowHealthCheckHook) {
@@ -644,6 +644,18 @@ HOOK_DEFINE_REPLACE(LowHealthCheckHook) {
         float lowHealthThreshold = playerState->GetItemCapacity(CPlayerStateMP1::EItemType::EnergyTanks) <= 3 ? 0.10f * (3 * RandoConfig::eTankCapacity) : RandoConfig::baseHealth;
 
         return curHealth <= lowHealthThreshold;
+    }
+};
+
+HOOK_DEFINE_TRAMPOLINE(GameMainLoopHook) {
+    static void Callback(void* thiz) {
+        if(R_FAILED(nn::fs::MountSdCardForDebug("sd"))) {
+            Logger::log("Failed to mount SD Card! Skipping Config load.\n");
+        }else {
+            RandoConfig::LoadValuesFromSeed();
+        }
+
+        Orig(thiz);
     }
 };
 
@@ -659,6 +671,9 @@ extern "C" void exl_main(void *x0, void *x1) {
 
     GetGameStateHook::InstallAtSymbol("_ZN17CGameStateManager18AssignNewGameStateERN4rstl8auto_ptrI10CGameStateEE");
     GetStateManagerHook::InstallAtSymbol("_ZN13CStateManager15InitializeStateEv");
+
+    // initialization hook
+    GameMainLoopHook::InstallAtSymbol("_ZN17CGameArchitecture3RunEv");
 
     // practice mod patches
     CPlayerMP1_ProcessInput::InstallAtSymbol("_ZN10CPlayerMP112ProcessInputERK11CFinalInputR13CStateManager");

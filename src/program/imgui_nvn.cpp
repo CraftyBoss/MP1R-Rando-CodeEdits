@@ -279,11 +279,6 @@ bool nvnImGui::InitImGui() {
                 .cmdBuf = nvnCmdBuf
         };
 
-        Logger::log("Mounting SD Card.\n");
-        if(nn::fs::MountSdCardForDebug("sd").isFailure()) {
-            Logger::log("Unable to Mount SD!\n");
-            return false;
-        }
         Logger::log("Initializing Backend.\n");
 
         ImguiNvnBackend::InitBackend(initInfo);
@@ -291,8 +286,6 @@ bool nvnImGui::InitImGui() {
         InputHelper::initKBM();
 
         InputHelper::setPort(0); // set input helpers default port to zero
-
-
 #if IMGUI_USEEXAMPLE_DRAW
         IMGUINVN_DRAWFUNC(
             ImGui::ShowDemoWindow();

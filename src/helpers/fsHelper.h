@@ -15,7 +15,11 @@ namespace FsHelper {
 
     void loadFileFromPath(LoadData &loadData);
 
+    bool tryLoadFileFromPath(LoadData& loadData);
+
     long getFileSize(const char *path);
 
     bool isFileExist(const char *path);
+
+    void freeLoadDataBuffer(LoadData& loadData);
 }
