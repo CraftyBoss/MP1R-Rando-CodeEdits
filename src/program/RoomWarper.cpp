@@ -3,14 +3,6 @@
 #include <logger/Logger.hpp>
 #include <program/RoomWarper.h>
 
-CObjectId sOverMasterId = CObjectId("73f2640c-cfb2-407b-a786-47a263ef0001"); // Tallon Overworld
-CObjectId sRuinsWorldId = CObjectId("914061a2-c17a-4826-94f5-be4faf90cae7"); // Chozo Ruins
-CObjectId sLavaMasterId = CObjectId("f5712eed-dde1-47bf-8670-d0664954861a"); // Magmoor Caverns
-CObjectId sIceWorldId = CObjectId("81b62adb-88f3-46f0-a43c-b8ccdfc354df"); // Phendrana Drifts
-CObjectId sMinesMasterId = CObjectId("d3e02263-def7-4a66-bef4-26a45e8c59a8"); // Phazon Mines
-CObjectId sCraterMasterId = CObjectId("73318837-09ac-4dbb-bc66-d26950259b27"); // Impact Crater
-CObjectId sIntroMasterId = CObjectId("4b5e8635-0f43-4ffb-9427-2e62186e517d"); // Space Pirate Frigate
-
 namespace {
     struct RegionEntry {
         const char* mEnglishName = nullptr;
@@ -32,6 +24,7 @@ namespace {
     }
 }
 
+#include "RandoConfig.h"
 #include "RegionEntries.h"
 
 CStateManager* RoomWarper::sStateManager = nullptr;
@@ -50,6 +43,10 @@ void RoomWarper::WarpToRoom(const CObjectId& worldId, const CObjectId& areaId) {
     sStateManager->GameInstanceState().QuitGame(NGameInstanceState::kQR_Warp);
 }
 
+void RoomWarper::WarpToStart() {
+    WarpToRoom(RandoConfig::startingWorldId, RandoConfig::startingAreaId);
+}
+
 void RoomWarper::DrawWarpMenu() {
     drawAreaEntries("Tallon Overworld", sOverMasterId, sOverMasterEntries);
     drawAreaEntries("Chozo Ruins", sRuinsWorldId, sRuinsWorldEntries);
@@ -58,4 +55,16 @@ void RoomWarper::DrawWarpMenu() {
     drawAreaEntries("Phazon Mines", sMinesMasterId, sMinesMasterEntries);
     drawAreaEntries("Impact Crater", sCraterMasterId, sCraterMasterEntries);
     drawAreaEntries("Space Pirate Frigate", sIntroMasterId, sIntroMasterEntries);
+}
+
+const CObjectId& RoomWarper::GetWorldIdFromRoom(const CObjectId& roomId) {
+    if(std::ranges::any_of(std::begin(sOverMasterEntries), std::end(sOverMasterEntries),          [roomId](const RegionEntry& entry) { return entry.mAreaId == roomId;})) return sOverMasterId;
+    else if(std::ranges::any_of(std::begin(sRuinsWorldEntries), std::end(sRuinsWorldEntries),     [roomId](const RegionEntry& entry) { return entry.mAreaId == roomId;})) return sRuinsWorldId;
+    else if(std::ranges::any_of(std::begin(sLavaMasterEntries), std::end(sLavaMasterEntries),     [roomId](const RegionEntry& entry) { return entry.mAreaId == roomId;})) return sLavaMasterId;
+    else if(std::ranges::any_of(std::begin(sIceWorldEntries), std::end(sIceWorldEntries),         [roomId](const RegionEntry& entry) { return entry.mAreaId == roomId;})) return sIceWorldId;
+    else if(std::ranges::any_of(std::begin(sMinesMasterEntries), std::end(sMinesMasterEntries),   [roomId](const RegionEntry& entry) { return entry.mAreaId == roomId;})) return sMinesMasterId;
+    else if(std::ranges::any_of(std::begin(sCraterMasterEntries), std::end(sCraterMasterEntries), [roomId](const RegionEntry& entry) { return entry.mAreaId == roomId;})) return sCraterMasterId;
+    else if(std::ranges::any_of(std::begin(sIntroMasterEntries), std::end(sIntroMasterEntries),   [roomId](const RegionEntry& entry) { return entry.mAreaId == roomId;})) return sIntroMasterId;
+
+    EXL_ABORT(0, "Failed to find World for Room ID!");
 }

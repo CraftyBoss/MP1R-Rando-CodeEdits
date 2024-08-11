@@ -242,6 +242,8 @@ void drawDebugWindow() {
     ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
     ImGui::Begin("Debug Info");
 
+    ImGui::Text("Current Seed: %s", RandoConfig::resultsString);
+
     if(ImGui::CollapsingHeader("General Game Info")) {
         ImGui::Text("Current Level Guid: %s", gpGameState->mLevelGuid.AsString().data());
         ImGui::Text("Current Area Guid: %s", gpGameState->CurrentWorldState()->GetCurrentArea().AsString().data());
@@ -278,10 +280,14 @@ void drawDebugWindow() {
         RoomWarper::WarpToRoom(gpGameState->mLevelGuid, CObjectId("CE44A797-C442-4128-8372-694626A83722"));
     }
 
+    if(ImGui::Button("Warp to Start")) {
+        RoomWarper::WarpToStart();
+    }
+
     ImGui::Text("Left Stick X: %f", InputHelper::getLeftStickX());
     ImGui::Text("Left Stick Y: %f", InputHelper::getLeftStickY());
 
-//    GUI::drawInventoryMenu();
+    GUI::drawInventoryMenu();
 
     ImGui::End();
 }
@@ -589,7 +595,7 @@ HOOK_DEFINE_INLINE(ChangeInitialAreaHook) {
         if(initState->mSaveMagic.value != -1) {
             if(initState->mAreaId == CObjectId("a8444ff6-e4a4-4183-bfec-73d6d6407fa5")) {
                 Logger::log("Setting Initial Area ID to Landing Site.\n");
-                initState->mAreaId = CObjectId("0676e13f-15cf-4bc4-a058-5e056be4cfa4");
+                initState->mAreaId = RandoConfig::startingAreaId;
             }
         }
     }
@@ -658,6 +664,8 @@ HOOK_DEFINE_TRAMPOLINE(GameMainLoopHook) {
         Orig(thiz);
     }
 };
+
+// CScriptTriggerMP1::CScriptTriggerMP1(CEntityInfoMP1 const&,CVector3f const&,CAABox const&,CDamageInfoMP1 const&,CVector3f const&,uint,bool,bool,bool,bool)	.text
 
 extern "C" void exl_main(void *x0, void *x1) {
     /* Setup hooking enviroment. */
