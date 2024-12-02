@@ -3,6 +3,17 @@
 #include <logger/Logger.hpp>
 #include <program/RoomWarper.h>
 
+class CWorldTransitionIOWin {
+public:
+    enum class EElevatorDirection {
+        Up,
+        Down
+    };
+
+    static void EnableTransition(EElevatorDirection dir);
+    static void EnableTextTeleport(const rstl::string& txtLbl, const CObjectId& id);
+};
+
 namespace {
     struct RegionEntry {
         const char* mEnglishName = nullptr;
@@ -28,11 +39,18 @@ namespace {
 #include "RegionEntries.h"
 
 CStateManager* RoomWarper::sStateManager = nullptr;
+const char* RoomWarper::sTransitionTextLabel = "[42C9296F]_000"; // Tallon Overworld
 
-void RoomWarper::WarpToRoom(const CObjectId& worldId, const CObjectId& areaId) {
+void RoomWarper::WarpToRoom(const CObjectId& worldId, const CObjectId& areaId, TransitionType transitionType) {
     if(sStateManager == nullptr) {
         Logger::log("State Manager is not Set! Cannot Warp.\n");
         return;
+    }
+
+    if(transitionType == TransitionType::Text) {
+        CWorldTransitionIOWin::EnableTextTeleport(rstl::string_l(sTransitionTextLabel), *CObjectId::Invalid());
+    } else if(transitionType == TransitionType::Elevator) {
+        CWorldTransitionIOWin::EnableTransition(CWorldTransitionIOWin::EElevatorDirection::Up);
     }
 
     gpGameState->SetCurrentWorldId(worldId);
@@ -44,7 +62,7 @@ void RoomWarper::WarpToRoom(const CObjectId& worldId, const CObjectId& areaId) {
 }
 
 void RoomWarper::WarpToStart() {
-    WarpToRoom(RandoConfig::startingWorldId, RandoConfig::startingAreaId);
+    WarpToRoom(RandoConfig::startingWorldId, RandoConfig::startingAreaId, TransitionType::Text);
 }
 
 void RoomWarper::DrawWarpMenu() {

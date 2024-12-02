@@ -61,6 +61,12 @@ void runCodePatches() {
     // removes call to CMaterialExec::DrawMesh (we call it ourselves in an inline hook)
     p.Seek(0xB55DA4); p.WriteInst(inst::Nop());
 
+    p.Seek(0xE64C5C);
+    p.WriteInst(inst::MovRegister(reg::X20, reg::X13));
+
+//    p.Seek(0x4726C4);
+//    p.BranchLinkInst((void*)CreateGuid);
+
     // changes an unused material index located in a static array used when initializing an SIconInstance for CMappableObjectData
     patch::RandomAccessPatcher rop;
     u64 startOffset = 0x1D27454;

@@ -4,8 +4,26 @@
 
 struct CEntityInfoMP1;
 struct CActorParametersMP1;
-struct CAnimResMPT;
-struct CStaticResMPT;
+struct CAnimResMPT {
+    CObjectId mResourceId;
+    CScale3f mScale;
+    char gap1C[4];
+    void* qword20;
+    const void *pvoid28;
+    void* qword30;
+    int stringHash1;
+    char gap3C[4];
+    void* qword40;
+    const void *pvoid48;
+    void* qword50;
+    int mStringHash2;
+    char gap5C[4];
+    char byte60;
+};
+struct CStaticResMPT {
+    CObjectId mResourceId;
+    CScale3f mScale;
+};
 struct CAnimatedUvDataMP1;
 
 enum EMaterialTypesMP1 {};

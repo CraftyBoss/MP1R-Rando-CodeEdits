@@ -667,6 +667,171 @@ HOOK_DEFINE_TRAMPOLINE(GameMainLoopHook) {
 
 // CScriptTriggerMP1::CScriptTriggerMP1(CEntityInfoMP1 const&,CVector3f const&,CAABox const&,CDamageInfoMP1 const&,CVector3f const&,uint,bool,bool,bool,bool)	.text
 
+struct CScriptSpecialFunctionMP1 : public CActorMP1 {
+    enum ESpinnerControllerMode {};
+
+    enum class ESpecialFunction {
+        What = 0x0,
+        PlayerFollowLocator = 0x1,
+        SpinnerController = 0x2,
+        ObjectFollowLocator = 0x3,
+        ChaffTarget = 0x4,
+        InventoryActivator = 0x5,
+        MapStation = 0x6,
+        SaveStation = 0x7,
+        IntroBossRingController = 0x8,
+        ViewFrustumTester = 0x9,
+        ShotSpinnerController = 0xA,
+        EscapeSequence = 0xB,
+        BossEnergyBar = 0xC,
+        EndGame = 0xD,
+        HUDFadeIn = 0xE,
+        CinematicSkip = 0xF,
+        ScriptLayerController = 0x10,
+        RainSimulator = 0x11,
+        AreaDamage = 0x12,
+        ObjectFollowObject = 0x13,
+        RedundantHintSystem = 0x14,
+        DropBomb = 0x15,
+        ScaleActor = 0x16,
+        MissileStation = 0x17,
+        Billboard = 0x18,
+        PlayerInAreaRelay = 0x19,
+        HUDTarget = 0x1A,
+        FogFader = 0x1B,
+        EnterLogbook = 0x1C,
+        PowerBombStation = 0x1D,
+        Ending = 0x1E,
+        FusionRelay = 0x1F,
+        WeaponSwitch = 0x20,
+        FogVolume = 0x2F,
+        RadialDamage = 0x30,
+        EnvFxDensityController = 0x31,
+        RumbleEffect = 0x32,
+    };
+
+    void Think(float,CStateManager &);
+    void ThinkPlayerFollowLocator(float,CStateManager &);
+    void ThinkSpinnerController(float,CStateManager &,CScriptSpecialFunctionMP1::ESpinnerControllerMode);
+    void ThinkObjectFollowLocator(float,CStateManager &);
+    void ThinkObjectFollowObject(float,CStateManager &);
+    void ThinkChaffTarget(float,CStateManager &);
+    void ThinkSaveStation(CStateManager &);
+    void ThinkIntroBossRingController(float,CStateManager &);
+    void ThinkRainSimulator(CStateManager &);
+    void ThinkAreaDamagePlayer(float,CStateManager &);
+    void ThinkScaleObject(float,CStateManager &);
+    void ThinkPlayerInAreaRelay(float,CStateManager &);
+
+    void* qword1E8;
+    ESpecialFunction mSpecialFunc;
+    rstl::string mLocatorString;
+    float mEndingClassification;
+    float float214;
+    float float218;
+    float float21C;
+    CVector3f mVec;
+    CColor4f mColor;
+};
+
+HOOK_DEFINE_TRAMPOLINE(CheckChoiceMadeHook) {
+    static bool Callback(void* thiz, int choice) {
+        Logger::log("Save Game Interface Choice: %d\n", choice);
+
+        if(choice == 2) {
+            RoomWarper::SetTransitionLabel("WarpToStartMsg");
+            RoomWarper::WarpToStart();
+            return false;
+        }
+
+        return Orig(thiz, choice);
+    }
+};
+
+// CAnimBitStream::CAnimBitStream(uchar const*,CAnimBitStream::EMode,uint)	.text
+
+HOOK_DEFINE_TRAMPOLINE(LogHashValueAndResultHook) {
+    static int Callback(const char* str, size_t len, uint key) {
+        int result = Orig(str, len, key);
+        Logger::log("Generated Hash for string: %s (Value: %02X)\n", str, result);
+        return result;
+    }
+};
+struct CScriptActorRotateMP1 : CEntityMP1
+{
+    CVector3f mRotation;
+    float mMaxTime;
+    float mCurrentTime;
+    rstl::vector<rstl::pair<TUniqueId,CTransform4f>> mActorTransforms;
+    char mUpdateBitfield;
+};
+
+HOOK_DEFINE_TRAMPOLINE(CheckHook) {
+    static void Callback(CScriptActorRotateMP1* thiz, bool next, CStateManager* stateManager) {
+        Logger::log("Starting Rotation. Is Next: %s Update Bitfield Values: ", BTOC(next));
+        MemoryHelper::logBytes(&thiz->mUpdateBitfield, sizeof(char));
+        Orig(thiz, next, stateManager);
+        Logger::log("Got %d actor(s) transform.\n", thiz->mActorTransforms.size());
+    }
+};
+
+HOOK_DEFINE_TRAMPOLINE(Check2Hook) {
+    static bool Callback(CEntityMP1* thiz, const CStateManager& mgr, const SConnection& connection, EScriptObjectState state, EScriptObjectMessage message, bool unkBool) {
+        bool result = Orig(thiz, mgr, connection, state, message, unkBool);
+        if(state == EScriptObjectState::Play && message == EScriptObjectMessage::Play) {
+            Logger::log("Checked Connection: %s for Play State and Message. Result: %s\n", connection.mConnectionTarget.mTargetGuid.AsString().data(), BTOC(result));
+            Logger::log("Connection Action: %02X Event: %02X\n", connection.mAction, connection.mEvent);
+        }
+        return result;
+    }
+};
+
+HOOK_DEFINE_TRAMPOLINE(CustomPickupMP1TranslationToMsgHook) {
+    static EScriptObjectMessage Callback(CPickupMP1GOC* thiz, NScriptMsg::EScriptAction action, bool unkBool) {
+        if(action == NScriptMsg::EScriptAction::ActorMP1_Play) {
+            Logger::log("Translating Action [%02X] to Play.\n", action);
+            return EScriptObjectMessage::Play;
+        }
+        return Orig(thiz, action, unkBool);
+    }
+};
+
+HOOK_DEFINE_TRAMPOLINE(CustomPickupMP1TranslationToActionHook) {
+    static NScriptMsg::EScriptAction Callback(CPickupMP1GOC* thiz, EScriptObjectMessage msg, bool unkBool) {
+        if(msg == EScriptObjectMessage::Play) {
+            Logger::log("Translating Message [%02X] to Play.\n", msg);
+            return NScriptMsg::EScriptAction::ActorMP1_Play;
+        }
+        return Orig(thiz, msg, unkBool);
+    }
+};
+
+HOOK_DEFINE_TRAMPOLINE(LogSendMessageHook) {
+    static void Callback(CEntityMP1 *thiz, EScriptObjectState state, CStateManager *mgr, EScriptObjectMessage msg) {
+        auto entityGOC = thiz->GetEntityBaseGOC();
+        if (entityGOC) {
+            auto compType = entityGOC->GetComponentType();
+            if (compType == HUDMemoMP1 || compType == SpawnPointMP1 || compType == TimerMP1)
+                Logger::log("[%s_%02X] Sending Message with State %s, ignoring %s.\n", getComponentName(compType), thiz->GetUniqueId(), getObjectStateName(state), getObjectMessageName(msg));
+        }
+
+        Orig(thiz, state, mgr, msg);
+    }
+};
+
+HOOK_DEFINE_TRAMPOLINE(LogAcceptMessageHook) {
+    static void Callback(CEntityMP1 *thiz, EScriptObjectMessage msg, TUniqueId senderId, CStateManager *mgr) {
+        auto entityGOC = thiz->GetEntityBaseGOC();
+        if (entityGOC) {
+            auto compType = entityGOC->GetComponentType();
+            if (compType == HUDMemoMP1 || compType == SpawnPointMP1 || compType == TimerMP1)
+                Logger::log("[%s_%02X] Received Message %s from sender %02X.\n", getComponentName(compType), thiz->GetUniqueId(), getObjectMessageName(msg), senderId.value);
+        }
+
+        Orig(thiz, msg, senderId, mgr);
+    }
+};
+
 extern "C" void exl_main(void *x0, void *x1) {
     /* Setup hooking enviroment. */
     exl::hook::Initialize();
@@ -688,6 +853,10 @@ extern "C" void exl_main(void *x0, void *x1) {
 
     // rando patches
     CheckForVariaHook::InstallAtOffset(0xD95F54);
+
+    // pickup changes
+    CustomPickupMP1TranslationToMsgHook::InstallAtSymbol("_ZNK13CPickupMP1GOC30TranslateScriptActionToMessageEN10NScriptMsg13EScriptActionEb");
+    CustomPickupMP1TranslationToActionHook::InstallAtSymbol("_ZNK13CPickupMP1GOC30TranslateScriptMessageToActionE20EScriptObjectMessageb");
 
     // patches for item hint locations on map
     SwapMaterial1Hook::InstallAtOffset(0xB55D30);
@@ -723,7 +892,18 @@ extern "C" void exl_main(void *x0, void *x1) {
     ChangeBaseHealthHook4::InstallAtOffset(0xC8909C);
     LowHealthCheckHook::InstallAtOffset(0xC69FFC);
 
+    // Warp to Start
+    CheckChoiceMadeHook::InstallAtSymbol("_ZN21CSaveGameInterfaceMP118ChoiceMadeInternalEi");
+
     CGameState::mCinematicForceSkippableOverride = true;
+
+    // Misc
+    LogSendMessageHook::InstallAtSymbol("_ZN10CEntityMP114SendScriptMsgsE18EScriptObjectStateR13CStateManager20EScriptObjectMessage");
+    LogAcceptMessageHook::InstallAtSymbol("_ZN17CScriptHUDMemoMP115AcceptScriptMsgE20EScriptObjectMessage15CValueVersionIdIjjtLj16ELj16EER13CStateManager");
+
+//    LogHashValueAndResultHook::InstallAtSymbol("_ZN8CFnvHash15GetStringHash32EPKcij");
+    // CheckHook::InstallAtSymbol("_ZN21CScriptActorRotateMP113StartRotationEbR13CStateManager");
+//    Check2Hook::InstallAtSymbol("_ZNK10CEntityMP115IsMP1ConnectionERK13CStateManagerRK11SConnection18EScriptObjectState20EScriptObjectMessageb");
 
 //    VerifyRenderDataUpdateHook::InstallAtOffset(0xB50434);
 //    CheckWillUpdateHook::InstallAtOffset(0xB50420);

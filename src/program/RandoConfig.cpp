@@ -75,7 +75,7 @@ namespace RandoConfig {
         FsHelper::freeLoadDataBuffer(loadData);
 
         updateTankCapacity(cJSON_GetNumberValue(cJSON_GetObjectItem(configJson, "EnergyTankCapacity")));
-//        updateStartingRoom(cJSON_GetStringValue(cJSON_GetObjectItem(configJson, "StartingArea")));
+        updateStartingRoom(cJSON_GetStringValue(cJSON_GetObjectItem(configJson, "StartingArea")));
         updateResultsString(cJSON_GetStringValue(cJSON_GetObjectItem(configJson, "ResultsString")));
 
         cJSON_Delete(configJson);

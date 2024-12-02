@@ -42,8 +42,10 @@ Permission is hereby granted, free of charge, to any person obtaining a copy
 #include <math.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <ctype.h>
 #include <float.h>
+
+// nostdlib hack
+#define tolower(c) (((char)c) >= 'A' && ((char)c) <= 'Z' ?  ((char)c) + 32 : (char)c)
 
 #ifdef ENABLE_LOCALES
 #include <locale.h>

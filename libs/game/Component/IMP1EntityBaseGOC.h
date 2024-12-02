@@ -46,7 +46,7 @@ public:
 
     void OnActivationStateChange(CStateManager &,CScriptMsg const&);
     void TranslateAndAcceptScriptMessage(CScriptMsg const&,CStateManager &);
-    void TranslateAndSendScriptMessages(class EScriptObjectState,CStateManager &, class EScriptObjectMessage);
+    void TranslateAndSendScriptMessages(EScriptObjectState,CStateManager &, EScriptObjectMessage);
     void TranslateAndSendScriptMessagesForConnection(class SConnection const&,CStateManager &,EScriptObjectMessage);
 
     virtual void TranslateScriptMessageToAction(EScriptObjectMessage,bool);

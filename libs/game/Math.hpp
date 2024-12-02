@@ -188,6 +188,16 @@ private:
     CVector2i max;
 };
 
+struct CColor4f {
+    float r;
+    float g;
+    float b;
+    float a;
+
+    inline CColor4f() : r(0), g(0), b(0), a(0) {};
+    inline CColor4f(float r, float g, float b, float a) : r(r), g(g), b(b), a(a) {};
+};
+
 class CMath {
 public:
     static float CeilingF(float);

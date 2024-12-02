@@ -9,7 +9,22 @@
 
 class SScriptStringPoolCache;
 class SScriptLink;
-class SConnection;
+
+struct SConnectionTarget
+{
+    CGuid mTargetGuid;
+    TUniqueId mTargetId;
+    ushort unkShort;
+};
+
+struct SConnection {
+    NScriptMsg::EScriptEvent mEvent;
+    NScriptMsg::EScriptAction mAction;
+    SConnectionTarget mConnectionTarget;
+    rstl::rc_ptr<void*> mEventCriteria;
+    rstl::rc_ptr<void*> mActionPayload;
+    char mBitfield;
+};
 class SGOComponentInstanceData;
 
 #pragma pack(push, 1)

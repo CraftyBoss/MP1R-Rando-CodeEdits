@@ -19,12 +19,12 @@ public:
 
     virtual CEntityMP1& TypesMatch(int);
     virtual void Think(float,class CStateManager &);
-    virtual void AcceptScriptMsg(class EScriptObjectMessage,CValueVersionId<uint,uint,ushort,16u,16u>,CStateManager &);
+    virtual void AcceptScriptMsg(EScriptObjectMessage,CValueVersionId<uint,uint,ushort,16u,16u>,CStateManager &);
     virtual void SetActive(bool);
     virtual void SetOwnerGOC(IMP1EntityBaseGOC &);
     virtual void OnAreaIdChanged(CStateManager &,CValueVersionId<uint,ushort,ushort,16u,16u>);
 
-    void SendScriptMsgs(class EScriptObjectState,CStateManager &,EScriptObjectMessage);
+    void SendScriptMsgs(EScriptObjectState,CStateManager &,EScriptObjectMessage);
     void SendActive(CStateManager &,bool);
     void GetAreaIdForPersistence(void);
     void CheckConnectedObject_if(CStateManager const&,EScriptObjectState,EScriptObjectMessage,class CValidEntityPredicate const&);
@@ -37,6 +37,10 @@ public:
     void IsMP1State(SConnection const&,EScriptObjectState,bool);
     void Area(void);
     void GetArea(void);
+
+    inline IMP1EntityBaseGOC* GetEntityBaseGOC() {return mEntityBase; }
+    inline const IMP1EntityBaseGOC* GetEntityBaseGOC() const {return mEntityBase; }
+    inline int GetUniqueId() const {return mUniqueId; }
 };
 
 class CEntityGOC : public CGameObjectComponent {

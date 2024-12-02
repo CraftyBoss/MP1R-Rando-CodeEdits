@@ -13,6 +13,17 @@ namespace rstl {
     template <typename T>
     class less;
 
+    template <typename L, typename R>
+    class pair {
+    public:
+        pair() = default;
+        pair(const L& first, const R& second) : mFirst(first), mSecond(second) {}
+        bool operator==(const pair& other) const { return mFirst == other.mFirst && mSecond == other.mSecond; }
+
+        L mFirst;
+        R mSecond;
+    };
+
     // if i had to guess, these allocators probably all use compile time virtualization
     // to be able to customize how something allocates without needing a reference to an actual allocator class
     class rmemory_allocator;
